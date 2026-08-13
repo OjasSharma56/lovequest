@@ -426,6 +426,30 @@ input[type="date"]:focus-visible, input[type="text"]:focus-visible, .btn:focus-v
   margin-top: 10px;
 }
 .sendbtn.secondary:active{ box-shadow:none; }
+.sendbtn.done{
+  opacity: .6;
+  filter: grayscale(.3);
+}
+
+/* achievement toast */
+.toast{
+  position: absolute;
+  left: 50%; top: 14px;
+  transform: translate(-50%, -140%);
+  background: var(--screen-ink);
+  color: var(--screen-bg);
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: .5px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  white-space: nowrap;
+  z-index: 9;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  transition: transform .35s cubic-bezier(.3,1.4,.6,1);
+  pointer-events: none;
+}
+.toast.show{ transform: translate(-50%, 0); }
 .send-hint{
   font-family: var(--font-body);
   font-size: 10.5px;
@@ -540,6 +564,7 @@ footer{
     <div class="screen" id="screen">
       <div class="scanlines"></div>
       <div class="glass-glare"></div>
+      <div class="toast" id="toast"></div>
 
       <!-- LEVEL 1 -->
       <section class="level active" data-level="0">
@@ -622,6 +647,10 @@ footer{
    CUSTOMIZE ME — everything a person would want to edit
    ========================================================= */
 const OJAS_PHONE = "+15875775519";
+const SEND_LABEL = 'SEND TO OJAS 💌';
+const SEND_DONE_LABEL = 'SENT 💌 ✓';
+const CAL_LABEL = 'ADD TO CALENDAR 📅';
+const CAL_DONE_LABEL = 'ADDED ✓';
 
 const CONFIG = {
   question: "kenzie, will you\ngo out with me?",
@@ -715,7 +744,66 @@ let selectedTod = null;
 let selectedActs = new Set();
 let customActivity = '';
 let soundOn = false;
+let achievementShown = false;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let toastTimer;
+function showToast(text, ms=2600){
+  const toast = document.getElementById('toast');
+  toast.textContent = text;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> toast.classList.remove('show'), ms);
+}
+
+/* ---------------- remember progress across visits ---------------- */
+const STORAGE_KEY = 'lovequest_state_v1';
+
+function saveState(level){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      level,
+      date: dateInput.value,
+      tod: selectedTod,
+      acts: [...selectedActs],
+      custom: customActivity
+    }));
+  }catch(e){}
+}
+
+function clearState(){
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+}
+
+function restoreState(){
+  let saved;
+  try{ saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); }catch(e){ return; }
+  if(!saved || typeof saved.level !== 'number' || saved.level < 1) return;
+
+  if(saved.date) dateInput.value = saved.date;
+  if(saved.tod){
+    selectedTod = saved.tod;
+    const chip = document.querySelector(`[data-tod="${saved.tod}"]`);
+    if(chip) chip.classList.add('sel');
+  }
+  refreshDateNext();
+
+  if(Array.isArray(saved.acts)){
+    saved.acts.forEach(id=>{
+      selectedActs.add(id);
+      const pill = document.querySelector(`.pill[data-id="${id}"]`);
+      if(pill) pill.classList.add('sel');
+    });
+  }
+  if(saved.custom){
+    customActivity = saved.custom;
+    document.getElementById('customActivity').value = saved.custom;
+  }
+  refreshLockIn();
+
+  if(saved.level === 3) buildNote();
+  setLevel(saved.level);
+}
 
 /* audio: tiny synthesized blips, no external files */
 let actx;
@@ -740,6 +828,7 @@ function setLevel(n){
   });
   document.getElementById('led').classList.toggle('on', n === 3);
   if(window.__fitConsole) window.__fitConsole();
+  saveState(n);
 }
 
 /* ---------------- Level 1: the ask ---------------- */
@@ -785,7 +874,19 @@ function dodge(){
   noBtn.style.top = y + 'px';
   evadeCount++;
   blip(300 + Math.random()*200, 0.06, 'triangle');
-  evadeCounter.textContent = evadeCount >= 3 ? `“no” has evaded love ${evadeCount} time${evadeCount===1?'':'s'}` : ' ';
+  evadeCounter.textContent = evadeCounterText(evadeCount);
+  if(evadeCount === 15 && !achievementShown){
+    achievementShown = true;
+    showToast('🏆 ACHIEVEMENT: UNCATCHABLE');
+    blip(1200, 0.15, 'square');
+  }
+}
+
+function evadeCounterText(n){
+  if(n < 3) return ' ';
+  if(n < 10) return `“no” has evaded love ${n} times`;
+  if(n < 15) return `okay this is getting ridiculous (${n})`;
+  return `“no” remains undefeated (${n} dodges)`;
 }
 noBtn.addEventListener('pointerenter', dodge);
 noBtn.addEventListener('pointerdown', (e)=>{ e.preventDefault(); dodge(); });
@@ -821,6 +922,7 @@ document.getElementById('todChips').addEventListener('click', (e)=>{
   selectedTod = chip.dataset.tod;
   blip(500, 0.05, 'square');
   refreshDateNext();
+  saveState(1);
 });
 dateNext.addEventListener('click', ()=>{
   blip(700, 0.08, 'square');
@@ -856,10 +958,12 @@ grid.addEventListener('click', (e)=>{
   selectedActs.has(id) ? selectedActs.delete(id) : selectedActs.add(id);
   blip(selectedActs.has(id) ? 620 : 260, 0.05, 'square');
   refreshLockIn();
+  saveState(2);
 });
 document.getElementById('customActivity').addEventListener('input', (e)=>{
   customActivity = e.target.value;
   refreshLockIn();
+  saveState(2);
 });
 document.getElementById('lockIn').addEventListener('click', ()=>{
   blip(988, 0.15, 'square');
@@ -870,6 +974,13 @@ document.getElementById('lockIn').addEventListener('click', ()=>{
 
 /* ---------------- Level 4: note ---------------- */
 function buildNote(){
+  const sendBtn = document.getElementById('sendToOjas');
+  sendBtn.textContent = SEND_LABEL;
+  sendBtn.classList.remove('done');
+  const calBtn = document.getElementById('addToCal');
+  calBtn.textContent = CAL_LABEL;
+  calBtn.classList.remove('done');
+
   const body = document.getElementById('noteBody');
   body.innerHTML = '';
   CONFIG.note.forEach(p=>{
@@ -907,6 +1018,7 @@ function buildSendLink(){
   const message = `Locked it in 💌 ${dateStr}${todStr ? ', ' + todStr : ''} — ${actsStr}`;
   const link = document.getElementById('sendToOjas');
   link.href = `sms:${OJAS_PHONE}&body=${encodeURIComponent(message)}`;
+  link.dataset.message = message;
 }
 
 const TOD_START_HOUR = { morning: 10, afternoon: 14, evening: 18, night: 20 };
@@ -935,22 +1047,42 @@ function buildCalendarLink(){
   link.href = `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
-document.getElementById('sendToOjas').addEventListener('click', ()=>{
+const IS_DESKTOP_NON_APPLE = /Windows NT|Linux/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent);
+
+document.getElementById('sendToOjas').addEventListener('click', (e)=>{
   blip(988, 0.1, 'square');
+  const btn = e.currentTarget;
+  if(IS_DESKTOP_NON_APPLE){
+    e.preventDefault();
+    const text = btn.dataset.message || '';
+    if(navigator.clipboard && text){
+      navigator.clipboard.writeText(text).then(()=>{
+        btn.textContent = 'COPIED — PASTE INTO MESSAGES 📋';
+        btn.classList.add('done');
+      });
+    }
+    return;
+  }
+  btn.textContent = SEND_DONE_LABEL;
+  btn.classList.add('done');
 });
 
-document.getElementById('addToCal').addEventListener('click', ()=>{
+document.getElementById('addToCal').addEventListener('click', (e)=>{
   blip(760, 0.1, 'square');
+  e.currentTarget.textContent = CAL_DONE_LABEL;
+  e.currentTarget.classList.add('done');
 });
 
 document.getElementById('replay').addEventListener('click', ()=>{
   evadeCount = 0; selectedTod = null; selectedActs = new Set(); customActivity = '';
+  achievementShown = false;
   document.querySelectorAll('.chip.sel, .pill.sel').forEach(el=>el.classList.remove('sel'));
   document.getElementById('customActivity').value = '';
   document.getElementById('lockIn').disabled = true;
   dateNext.disabled = true;
   dateInput.value = '';
   evadeCounter.textContent = ' ';
+  clearState();
   setLevel(0);
 });
 
@@ -1005,6 +1137,8 @@ document.getElementById('soundToggle').addEventListener('click', (e)=>{
     host.appendChild(s);
   }
 })();
+
+restoreState();
 
 /* ---------------- scale the console to always fit the viewport ---------------- */
 (function fitToScreen(){
