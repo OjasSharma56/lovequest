@@ -159,7 +159,7 @@ body{
   position:relative;
   background: linear-gradient(175deg, var(--screen-bg) 0%, #eec9c3 100%);
   border-radius: 8px;
-  min-height: 380px;
+  min-height: 440px;
   overflow:hidden;
   box-shadow: 0 0 0 3px var(--screen-dark) inset, 0 0 24px rgba(0,0,0,0.25) inset;
 }
@@ -281,7 +281,7 @@ body{
   letter-spacing: 1px;
   color: var(--screen-dark);
 }
-input[type="date"]{
+input[type="date"], input[type="text"]{
   font-family: var(--font-body);
   font-weight:700;
   font-size: 14px;
@@ -292,7 +292,12 @@ input[type="date"]{
   color: var(--screen-ink);
   width:100%;
 }
-input[type="date"]:focus-visible, .btn:focus-visible, .pill:focus-visible{
+input[type="text"]::placeholder{
+  font-weight: 500;
+  color: var(--screen-dark);
+  opacity: .55;
+}
+input[type="date"]:focus-visible, input[type="text"]:focus-visible, .btn:focus-visible, .pill:focus-visible{
   outline: 2px solid var(--screen-ink);
   outline-offset: 2px;
 }
@@ -499,7 +504,7 @@ footer{
 }
 
 @media (max-width: 360px){
-  .screen{ min-height: 400px; }
+  .screen{ min-height: 460px; }
 }
 </style>
 </head>
@@ -568,6 +573,10 @@ footer{
         <div class="level-tag">LEVEL 3 / 4 — THE QUEST</div>
         <h1 class="headline" style="margin-bottom:10px;">what should<br>we do?</h1>
         <div class="grid" id="activityGrid"></div>
+        <div class="field-card" style="margin-top:10px;">
+          <label class="field-label" for="customActivity">OR TYPE YOUR OWN</label>
+          <input type="text" id="customActivity" placeholder="something not on the list..." maxlength="60">
+        </div>
         <button class="lockbtn" id="lockIn" disabled>LOCK IT IN</button>
       </section>
 
@@ -611,7 +620,7 @@ const CONFIG = {
     { id:"cook",     label:"COOKING\nTOGETHER", icon:"cook" },
     { id:"cuddle",   label:"CUDDLE &\nMOVIE",   icon:"movie" },
     { id:"study",    label:"STUDY\nDATE",       icon:"book" },
-    { id:"boulder",  label:"BOULDER-\nING",     icon:"boulder" },
+    { id:"boulder",  label:"BOULDER-\nING",     icon:"boulder", text:"Bouldering" },
     { id:"football", label:"FOOTBALL",          icon:"football" },
     { id:"escape",   label:"ESCAPE\nROOM",      icon:"lock" },
   ],
@@ -695,6 +704,7 @@ const ICONS = {
 let evadeCount = 0;
 let selectedTod = null;
 let selectedActs = new Set();
+let customActivity = '';
 let soundOn = false;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -825,6 +835,9 @@ CONFIG.activities.forEach(act=>{
   grid.appendChild(btn);
   drawPixels(svg, ICONS[act.icon], 1, PAL);
 });
+function refreshLockIn(){
+  document.getElementById('lockIn').disabled = selectedActs.size === 0 && customActivity.trim() === '';
+}
 grid.addEventListener('click', (e)=>{
   const pill = e.target.closest('.pill');
   if(!pill) return;
@@ -832,7 +845,11 @@ grid.addEventListener('click', (e)=>{
   const id = pill.dataset.id;
   selectedActs.has(id) ? selectedActs.delete(id) : selectedActs.add(id);
   blip(selectedActs.has(id) ? 620 : 260, 0.05, 'square');
-  document.getElementById('lockIn').disabled = selectedActs.size === 0;
+  refreshLockIn();
+});
+document.getElementById('customActivity').addEventListener('input', (e)=>{
+  customActivity = e.target.value;
+  refreshLockIn();
 });
 document.getElementById('lockIn').addEventListener('click', ()=>{
   blip(988, 0.15, 'square');
@@ -866,10 +883,11 @@ function formatDateNice(value){
 function buildSendLink(){
   const dateStr = formatDateNice(dateInput.value) || 'no date yet';
   const todStr = selectedTod ? selectedTod[0].toUpperCase() + selectedTod.slice(1) : '';
-  const actsStr = CONFIG.activities
+  const presetLabels = CONFIG.activities
     .filter(a => selectedActs.has(a.id))
-    .map(a => a.label.replace('\n',' '))
-    .join(', ') || 'no plans yet';
+    .map(a => a.text || a.label.replace('\n',' '));
+  const custom = customActivity.trim();
+  const actsStr = [...presetLabels, ...(custom ? [custom] : [])].join(', ') || 'no plans yet';
   const message = `Locked it in 💌 ${dateStr}${todStr ? ', ' + todStr : ''} — ${actsStr}`;
   const link = document.getElementById('sendToOjas');
   link.href = `sms:${OJAS_PHONE}&body=${encodeURIComponent(message)}`;
@@ -880,8 +898,9 @@ document.getElementById('sendToOjas').addEventListener('click', ()=>{
 });
 
 document.getElementById('replay').addEventListener('click', ()=>{
-  evadeCount = 0; selectedTod = null; selectedActs = new Set();
+  evadeCount = 0; selectedTod = null; selectedActs = new Set(); customActivity = '';
   document.querySelectorAll('.chip.sel, .pill.sel').forEach(el=>el.classList.remove('sel'));
+  document.getElementById('customActivity').value = '';
   document.getElementById('lockIn').disabled = true;
   dateNext.disabled = true;
   dateInput.value = '';
@@ -959,6 +978,10 @@ document.getElementById('soundToggle').addEventListener('click', (e)=>{
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize', fit);
   }
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(fit);
+  }
+  window.addEventListener('load', fit);
 })();
 </script>
 </body>
