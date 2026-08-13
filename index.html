@@ -418,6 +418,14 @@ input[type="date"]:focus-visible, input[type="text"]:focus-visible, .btn:focus-v
   text-decoration: none;
 }
 .sendbtn:active{ transform: translateY(3px); box-shadow:none; }
+.sendbtn.secondary{
+  background: transparent;
+  color: var(--screen-dark);
+  border: 2px solid var(--screen-dark);
+  box-shadow: 0 3px 0 rgba(52,22,43,0.2);
+  margin-top: 10px;
+}
+.sendbtn.secondary:active{ box-shadow:none; }
 .send-hint{
   font-family: var(--font-body);
   font-size: 10.5px;
@@ -588,8 +596,9 @@ footer{
           <div class="note-titlebar">♥ love_note.txt</div>
           <div class="note-body" id="noteBody"></div>
         </div>
+        <a class="sendbtn secondary" id="addToCal" href="#" target="_blank" rel="noopener">ADD TO CALENDAR 📅</a>
         <a class="sendbtn" id="sendToOjas" href="#">SEND TO OJAS 💌</a>
-        <div class="send-hint">opens Messages with your picks filled in</div>
+        <div class="send-hint">both open pre-filled with your picks</div>
         <button class="replay" id="replay">↺ play again</button>
       </section>
 
@@ -730,6 +739,7 @@ function setLevel(n){
     p.classList.toggle('done', Number(p.dataset.pip) <= n);
   });
   document.getElementById('led').classList.toggle('on', n === 3);
+  if(window.__fitConsole) window.__fitConsole();
 }
 
 /* ---------------- Level 1: the ask ---------------- */
@@ -872,6 +882,7 @@ function buildNote(){
   sign.textContent = CONFIG.signoff;
   body.appendChild(sign);
   buildSendLink();
+  buildCalendarLink();
 }
 
 function formatDateNice(value){
@@ -880,7 +891,7 @@ function formatDateNice(value){
   return new Date(y, m-1, d).toLocaleDateString('en-US', { month:'short', day:'numeric' });
 }
 
-function buildSendLink(){
+function getPickSummary(){
   const dateStr = formatDateNice(dateInput.value) || 'no date yet';
   const todStr = selectedTod ? selectedTod[0].toUpperCase() + selectedTod.slice(1) : '';
   const presetLabels = CONFIG.activities
@@ -888,13 +899,48 @@ function buildSendLink(){
     .map(a => a.text || a.label.replace('\n',' '));
   const custom = customActivity.trim();
   const actsStr = [...presetLabels, ...(custom ? [custom] : [])].join(', ') || 'no plans yet';
+  return { dateStr, todStr, actsStr };
+}
+
+function buildSendLink(){
+  const { dateStr, todStr, actsStr } = getPickSummary();
   const message = `Locked it in 💌 ${dateStr}${todStr ? ', ' + todStr : ''} — ${actsStr}`;
   const link = document.getElementById('sendToOjas');
   link.href = `sms:${OJAS_PHONE}&body=${encodeURIComponent(message)}`;
 }
 
+const TOD_START_HOUR = { morning: 10, afternoon: 14, evening: 18, night: 20 };
+const EVENT_DURATION_HOURS = 2;
+const CAL_EVENT_TITLE = "Date with Ojas ♥";
+const pad2 = n => String(n).padStart(2, '0');
+
+function buildCalendarLink(){
+  const link = document.getElementById('addToCal');
+  if(!dateInput.value){
+    link.href = '#';
+    return;
+  }
+  const { actsStr } = getPickSummary();
+  const [y, m, d] = dateInput.value.split('-').map(Number);
+  const startHour = TOD_START_HOUR[selectedTod] ?? 18;
+  const start = `${y}${pad2(m)}${pad2(d)}T${pad2(startHour)}0000`;
+  const endDate = new Date(y, m - 1, d, startHour + EVENT_DURATION_HOURS);
+  const end = `${endDate.getFullYear()}${pad2(endDate.getMonth() + 1)}${pad2(endDate.getDate())}T${pad2(endDate.getHours())}0000`;
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: CAL_EVENT_TITLE,
+    dates: `${start}/${end}`,
+    details: `${actsStr}\n\nplanned via LOVEQUEST 🎮`
+  });
+  link.href = `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
 document.getElementById('sendToOjas').addEventListener('click', ()=>{
   blip(988, 0.1, 'square');
+});
+
+document.getElementById('addToCal').addEventListener('click', ()=>{
+  blip(760, 0.1, 'square');
 });
 
 document.getElementById('replay').addEventListener('click', ()=>{
@@ -972,6 +1018,7 @@ document.getElementById('soundToggle').addEventListener('click', (e)=>{
     const scale = Math.min(1, (vw - MARGIN) / rect.width, (vh - MARGIN) / rect.height);
     el.style.transform = scale < 1 ? `scale(${scale})` : 'none';
   }
+  window.__fitConsole = fit;
   fit();
   window.addEventListener('resize', fit);
   window.addEventListener('orientationchange', fit);
