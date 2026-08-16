@@ -8,9 +8,9 @@ const CAL_LABEL = 'ADD TO CALENDAR 📅';
 const CAL_DONE_LABEL = 'ADDED ✓';
 
 const CONFIG = {
-  question: "kenzie, will you\ngo out with me?",
+  question: "You've been summoned.",
   questionVariants: [
-    "kenzie, will you\ngo out with me?",
+    "You've been summoned.",
     "kenzie, still yes\nto going out with me?",
     "ok but for real,\nwill you go out with me?",
     "kenzie. asking again.\ngo out with me?",
@@ -25,9 +25,7 @@ const CONFIG = {
     { id:"escape",   label:"ESCAPE\nROOM",      icon:"lock" },
   ],
   note: [
-    "Hey Kenzie — if you made it this far, the ‘no’ button did its job. You survived Level 1.",
-    "I built you a whole fake game cartridge instead of just texting ‘wanna hang out,’ because you deserve slightly more effort than a text.",
-    "Cooking, cuddling through a movie, bouldering, football, escape rooms — whatever you just picked, I'm in. Save file's written."
+    "Good girl. You survived Level 1. Add this to the calendar (which you should have made by now) and send me the brief so I can lock it in. I'll handle the rest. Show up looking cute."
   ],
   noteReturning: [
     "back again — I like that.",
@@ -294,7 +292,10 @@ noBtn.addEventListener('click', (e)=>{ e.preventDefault(); dodge(); });
 window.addEventListener('load', ()=>{
   const hostRect = levelZero.getBoundingClientRect();
   const yesRect = yesBtn.getBoundingClientRect();
-  noBtn.style.left = (yesRect.right - hostRect.left + 14) + 'px';
+  const noW = noBtn.offsetWidth || 48;
+  const desiredLeft = yesRect.right - hostRect.left + 14;
+  const maxLeft = hostRect.width - noW - 12;
+  noBtn.style.left = Math.min(desiredLeft, Math.max(maxLeft, 12)) + 'px';
   noBtn.style.top = (yesRect.top - hostRect.top + 10) + 'px';
 });
 
