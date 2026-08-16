@@ -149,7 +149,11 @@ body{
   border-radius: 8px;
   min-height: 440px;
   overflow:hidden;
-  box-shadow: 0 0 0 3px var(--screen-dark) inset, 0 0 24px rgba(0,0,0,0.25) inset;
+  box-shadow:
+    0 0 0 3px var(--screen-dark) inset,
+    0 10px 22px rgba(0,0,0,0.35) inset,
+    0 -2px 6px rgba(255,255,255,0.15) inset,
+    0 0 24px rgba(0,0,0,0.25) inset;
 }
 .scanlines{
   position:absolute; inset:0; pointer-events:none;
@@ -189,17 +193,24 @@ body{
 .headline{
   font-family: var(--font-display);
   font-size: 15px;
-  line-height:1.7;
+  line-height:1.85;
   letter-spacing: 0.5px;
   text-align:center;
   color: var(--screen-ink);
   text-shadow: 1px 1px 0 rgba(244,217,209,0.5);
   margin: 4px 0 14px;
   text-wrap: balance;
+  width: 100%;
 }
 
 /* ---- pixel sprite canvas rendering ---- */
 .sprite{ image-rendering: pixelated; display:block; }
+
+@keyframes bob{
+  0%, 100%{ transform: translateY(0); }
+  50%{ transform: translateY(-4px); }
+}
+#pigSprite{ animation: bob 2.4s ease-in-out infinite; }
 
 .stage{
   flex:1;
@@ -228,7 +239,7 @@ body{
   background: linear-gradient(180deg, var(--trim-500), var(--trim-600));
   box-shadow: 0 4px 0 #94235a, 0 8px 16px rgba(200,68,122,0.35);
 }
-.btn-yes:active{ box-shadow: 0 1px 0 #94235a; }
+.btn-yes:active{ transform: scale(0.96); box-shadow: 0 1px 0 #94235a; }
 .btn-no{
   position:absolute;
   font-size: 9px;
@@ -326,6 +337,7 @@ input[type="date"]:focus-visible, input[type="text"]:focus-visible, .btn:focus-v
   color: var(--screen-ink);
   line-height:1.5;
   text-align:center;
+  transition: transform .1s ease;
 }
 .pill.sel{
   border-color: var(--screen-ink);
@@ -333,6 +345,8 @@ input[type="date"]:focus-visible, input[type="text"]:focus-visible, .btn:focus-v
   color: var(--screen-bg);
   box-shadow: 0 3px 0 var(--screen-dark);
 }
+.pill:active{ transform: scale(0.96); }
+.pill.sel:active{ box-shadow: 0 1px 0 var(--screen-dark); }
 
 .lockbtn{
   font-family: var(--font-display);
@@ -349,7 +363,7 @@ input[type="date"]:focus-visible, input[type="text"]:focus-visible, .btn:focus-v
   opacity:.4; cursor:not-allowed;
   box-shadow:none;
 }
-.lockbtn:active:not(:disabled){ transform: translateY(3px); box-shadow:none; }
+.lockbtn:active:not(:disabled){ transform: scale(0.96); box-shadow:none; }
 
 /* final note card */
 .note-window{
@@ -404,7 +418,7 @@ input[type="date"]:focus-visible, input[type="text"]:focus-visible, .btn:focus-v
   cursor: pointer;
   text-decoration: none;
 }
-.sendbtn:active{ transform: translateY(3px); box-shadow:none; }
+.sendbtn:active{ transform: scale(0.96); box-shadow:none; }
 .sendbtn.secondary{
   background: transparent;
   color: var(--screen-dark);
