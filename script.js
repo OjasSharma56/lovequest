@@ -8,14 +8,7 @@ const CAL_LABEL = 'ADD TO CALENDAR 📅';
 const CAL_DONE_LABEL = 'ADDED ✓';
 
 const CONFIG = {
-  question: "You've been summoned.",
-  questionVariants: [
-    "You've been summoned.",
-    "kenzie, still yes\nto going out with me?",
-    "ok but for real,\nwill you go out with me?",
-    "kenzie. asking again.\ngo out with me?",
-    "one more time for\nthe people in back —\ngo out with me?"
-  ],
+  question: "Time to cash in\nyour Kenzie points.",
   activities: [
     { id:"cook",     label:"COOKING\nTOGETHER", icon:"cook" },
     { id:"cuddle",   label:"CUDDLE &\nMOVIE",   icon:"movie" },
@@ -26,11 +19,6 @@ const CONFIG = {
   ],
   note: [
     "Good girl. You survived Level 1. Add this to the calendar (which you should have made by now) and send me the brief so I can lock it in. I'll handle the rest. Show up looking cute."
-  ],
-  noteReturning: [
-    "back again — I like that.",
-    "still cooking, still down for movie night, still yours whenever you actually pick a day.",
-    "pick something and let's go do it for real this time 😄"
   ],
   signoff: "— Ojas ♥"
 };
@@ -67,25 +55,6 @@ const PIG = [
 ".kpppppppppppppppk.",
 ".kppkkppppppkkpppk.",
 ".kppkkppppppkkpppk.",
-".kppppkkkkkkkppppk.",
-".kppppkpppppkppppk.",
-".kppppkpdpdpkppppk.",
-".kppppkkkkkkkppppk.",
-"..kppppppppppppk...",
-"...kkppppppppkk....",
-"....kk.kkkk.kk.....",
-"....kk......kk....."
-];
-
-const PIG_WINK = [
-".kkkkk.......kkkkk.",
-"kppppk.......kppppk",
-"kppppkk.....kkppppk",
-"kpppppkk...kkpppppk",
-".kpppppkkkkkpppppk.",
-".kpppppppppppppppk.",
-".kpppkppppppkkpppk.",
-".kpppkppppppkkpppk.",
 ".kppppkkkkkkkppppk.",
 ".kppppkpppppkppppk.",
 ".kppppkpdpdpkppppk.",
@@ -216,22 +185,10 @@ function setLevel(n){
   saveState(n);
 }
 
-/* ---------------- keep it fresh across repeat visits ---------------- */
-const VISITS_KEY = 'lovequest_visits_v1';
-let visitCount = 1;
-try{
-  visitCount = parseInt(localStorage.getItem(VISITS_KEY) || '0', 10) + 1;
-  localStorage.setItem(VISITS_KEY, String(visitCount));
-}catch(e){}
-
 /* ---------------- Level 1: the ask ---------------- */
-const questionText = CONFIG.questionVariants[(visitCount - 1) % CONFIG.questionVariants.length];
-document.getElementById('question').innerHTML = questionText.replace(/\n/g, '<br>');
-drawPixels(document.getElementById('pigSprite'), visitCount % 2 === 0 ? PIG_WINK : PIG, 1, PAL);
+document.getElementById('question').innerHTML = CONFIG.question.replace(/\n/g, '<br>');
+drawPixels(document.getElementById('pigSprite'), PIG, 1, PAL);
 drawPixels(document.getElementById('calSprite'), CAL, 1, PAL);
-if(visitCount > 1){
-  document.getElementById('playCount').textContent = `save file — playthrough #${visitCount}`;
-}
 
 const stage1 = document.querySelector('[data-level="0"] .ask-row');
 const noBtn = document.getElementById('noBtn');
@@ -383,8 +340,7 @@ function buildNote(){
 
   const body = document.getElementById('noteBody');
   body.innerHTML = '';
-  const noteLines = (visitCount > 1 && CONFIG.noteReturning) ? CONFIG.noteReturning : CONFIG.note;
-  noteLines.forEach(p=>{
+  CONFIG.note.forEach(p=>{
     const el = document.createElement('p');
     el.textContent = p;
     body.appendChild(el);
