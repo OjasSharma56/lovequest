@@ -4,8 +4,14 @@
 const OJAS_PHONE = "+15875775519";
 const SEND_LABEL = 'SEND TO OJAS 💌';
 const SEND_DONE_LABEL = 'SENT 💌 ✓';
-const CAL_LABEL = 'ADD TO CALENDAR 📅';
-const CAL_DONE_LABEL = 'ADDED ✓';
+
+/* auto-books straight onto Ojas's real Google Calendar and checks for conflicts —
+   backed by a Google Apps Script web app tied to his account, so no credentials
+   ever reach this page or her browser */
+const CAL_BACKEND_URL = "https://script.google.com/macros/s/AKfycbzYLMwnOmgXwu7UlsCLW-cs6YImwYEws3Wm4pBPa9C1Fl0_VoaT46rbH-fhsbAFUOwd/exec";
+const CAL_SECRET = "4fZw434IrwPNuwyfK7i2M0-9";
+const TOD_START_HOUR = { morning: 10, afternoon: 14, evening: 18, night: 20 };
+const EVENT_DURATION_HOURS = 2;
 
 const CONFIG = {
   question: "Time to cash in\nyour Kenzie points.",
@@ -99,6 +105,7 @@ let selectedActs = new Set();
 let customActivity = '';
 let soundOn = false;
 let achievementShown = false;
+let calendarBooked = false;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let toastTimer;
@@ -120,7 +127,8 @@ function saveState(level){
       date: dateInput.value,
       tod: selectedTod,
       acts: [...selectedActs],
-      custom: customActivity
+      custom: customActivity,
+      booked: calendarBooked
     }));
   }catch(e){}
 }
@@ -155,7 +163,10 @@ function restoreState(){
   }
   refreshLockIn();
 
-  if(saved.level === 3) buildNote();
+  if(saved.level === 3){
+    calendarBooked = !!saved.booked;
+    buildNote();
+  }
   setLevel(saved.level);
 }
 
@@ -324,9 +335,42 @@ document.getElementById('customActivity').addEventListener('input', (e)=>{
 });
 document.getElementById('lockIn').addEventListener('click', ()=>{
   blip(988, 0.15, 'square');
-  buildNote();
-  setLevel(3);
-  launchConfetti();
+  const btn = document.getElementById('lockIn');
+  btn.disabled = true;
+  btn.textContent = 'CHECKING OJAS\u2019S CALENDAR\u2026';
+  bookOnOjasCalendar()
+    .then(res => {
+      btn.disabled = false;
+      btn.textContent = 'LOCK IT IN';
+      if (res.status === 'conflict') {
+        showConflictModal(res.conflicts);
+        return;
+      }
+      calendarBooked = (res.status === 'ok');
+      buildNote();
+      setLevel(3);
+      launchConfetti();
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.textContent = 'LOCK IT IN';
+      calendarBooked = false;
+      buildNote();
+      setLevel(3);
+      launchConfetti();
+    });
+});
+
+function showConflictModal(conflicts){
+  blip(220, 0.2, 'sawtooth');
+  const names = (conflicts && conflicts.length) ? conflicts.join(', ') : 'something else';
+  document.getElementById('conflictMsg').textContent =
+    `Ojas already has "${names}" booked around then. Pick a different time?`;
+  document.getElementById('conflictModal').classList.add('show');
+}
+document.getElementById('conflictBack').addEventListener('click', ()=>{
+  document.getElementById('conflictModal').classList.remove('show');
+  setLevel(1);
 });
 
 /* ---------------- Level 4: note ---------------- */
@@ -334,9 +378,12 @@ function buildNote(){
   const sendBtn = document.getElementById('sendToOjas');
   sendBtn.textContent = SEND_LABEL;
   sendBtn.classList.remove('done');
-  const calBtn = document.getElementById('addToCal');
-  calBtn.textContent = CAL_LABEL;
-  calBtn.classList.remove('done');
+
+  const calStatus = document.getElementById('calStatus');
+  calStatus.textContent = calendarBooked
+    ? '\uD83D\uDCC5 already on Ojas\u2019s calendar'
+    : '\u26A0\uFE0F couldn\u2019t reach the calendar \u2014 text him just in case';
+  calStatus.classList.toggle('warn', !calendarBooked);
 
   const body = document.getElementById('noteBody');
   body.innerHTML = '';
@@ -350,7 +397,6 @@ function buildNote(){
   sign.textContent = CONFIG.signoff;
   body.appendChild(sign);
   buildSendLink();
-  buildCalendarLink();
 }
 
 function formatDateNice(value){
@@ -372,36 +418,23 @@ function getPickSummary(){
 
 function buildSendLink(){
   const { dateStr, todStr, actsStr } = getPickSummary();
-  const message = `Locked it in 💌 ${dateStr}${todStr ? ', ' + todStr : ''} — ${actsStr}`;
+  const message = `Locked it in \uD83D\uDC8C ${dateStr}${todStr ? ', ' + todStr : ''} \u2014 ${actsStr}`;
   const link = document.getElementById('sendToOjas');
   link.href = `sms:${OJAS_PHONE}&body=${encodeURIComponent(message)}`;
   link.dataset.message = message;
 }
 
-const TOD_START_HOUR = { morning: 10, afternoon: 14, evening: 18, night: 20 };
-const EVENT_DURATION_HOURS = 2;
-const CAL_EVENT_TITLE = "Date with Ojas ♥";
-const pad2 = n => String(n).padStart(2, '0');
-
-function buildCalendarLink(){
-  const link = document.getElementById('addToCal');
-  if(!dateInput.value){
-    link.href = '#';
-    return;
-  }
+function bookOnOjasCalendar(){
   const { actsStr } = getPickSummary();
-  const [y, m, d] = dateInput.value.split('-').map(Number);
   const startHour = TOD_START_HOUR[selectedTod] ?? 18;
-  const start = `${y}${pad2(m)}${pad2(d)}T${pad2(startHour)}0000`;
-  const endDate = new Date(y, m - 1, d, startHour + EVENT_DURATION_HOURS);
-  const end = `${endDate.getFullYear()}${pad2(endDate.getMonth() + 1)}${pad2(endDate.getDate())}T${pad2(endDate.getHours())}0000`;
   const params = new URLSearchParams({
-    action: 'TEMPLATE',
-    text: CAL_EVENT_TITLE,
-    dates: `${start}/${end}`,
-    details: `${actsStr}\n\nplanned via LOVEQUEST 🎮`
+    key: CAL_SECRET,
+    date: dateInput.value,
+    startHour: String(startHour),
+    duration: String(EVENT_DURATION_HOURS),
+    details: actsStr
   });
-  link.href = `https://calendar.google.com/calendar/render?${params.toString()}`;
+  return fetch(`${CAL_BACKEND_URL}?${params.toString()}`).then(r => r.json());
 }
 
 const IS_DESKTOP_NON_APPLE = /Windows NT|Linux/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent);
@@ -414,7 +447,7 @@ document.getElementById('sendToOjas').addEventListener('click', (e)=>{
     const text = btn.dataset.message || '';
     if(navigator.clipboard && text){
       navigator.clipboard.writeText(text).then(()=>{
-        btn.textContent = 'COPIED — PASTE INTO MESSAGES 📋';
+        btn.textContent = 'COPIED \u2014 PASTE INTO MESSAGES \uD83D\uDCCB';
         btn.classList.add('done');
       });
     }
@@ -424,15 +457,9 @@ document.getElementById('sendToOjas').addEventListener('click', (e)=>{
   btn.classList.add('done');
 });
 
-document.getElementById('addToCal').addEventListener('click', (e)=>{
-  blip(760, 0.1, 'square');
-  e.currentTarget.textContent = CAL_DONE_LABEL;
-  e.currentTarget.classList.add('done');
-});
-
 document.getElementById('replay').addEventListener('click', ()=>{
   evadeCount = 0; selectedTod = null; selectedActs = new Set(); customActivity = '';
-  achievementShown = false;
+  achievementShown = false; calendarBooked = false;
   document.querySelectorAll('.chip.sel, .pill.sel').forEach(el=>el.classList.remove('sel'));
   document.getElementById('customActivity').value = '';
   document.getElementById('lockIn').disabled = true;

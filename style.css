@@ -419,17 +419,27 @@ input[type="date"]:focus-visible, input[type="text"]:focus-visible, .btn:focus-v
   text-decoration: none;
 }
 .sendbtn:active{ transform: scale(0.96); box-shadow:none; }
-.sendbtn.secondary{
-  background: transparent;
-  color: var(--screen-dark);
-  border: 2px solid var(--screen-dark);
-  box-shadow: 0 3px 0 rgba(52,22,43,0.2);
-  margin-top: 10px;
-}
-.sendbtn.secondary:active{ box-shadow:none; }
 .sendbtn.done{
   opacity: .6;
   filter: grayscale(.3);
+}
+
+.cal-status{
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: .3px;
+  color: var(--screen-dark);
+  text-align: center;
+  padding: 8px 6px;
+  margin-top: 4px;
+  border: 1.5px dashed rgba(52,22,43,0.3);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.2);
+}
+.cal-status.warn{
+  color: #94235a;
+  border-color: rgba(148,35,90,0.4);
+  background: rgba(200,68,122,0.08);
 }
 
 /* achievement toast */
@@ -451,6 +461,50 @@ input[type="date"]:focus-visible, input[type="text"]:focus-visible, .btn:focus-v
   pointer-events: none;
 }
 .toast.show{ transform: translate(-50%, 0); }
+
+/* conflict prompt */
+.conflict-modal{
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(52,22,43,0.55);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+}
+.conflict-modal.show{
+  opacity: 1;
+  pointer-events: auto;
+}
+.conflict-card{
+  width: 100%;
+  background: var(--screen-bg);
+  border: 2px solid var(--screen-ink);
+  border-radius: 10px;
+  box-shadow: 4px 4px 0 var(--screen-dark);
+  padding: 16px 14px;
+  text-align: center;
+  transform: translateY(10px);
+  transition: transform .25s ease;
+}
+.conflict-modal.show .conflict-card{ transform: translateY(0); }
+.conflict-title{
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--screen-ink);
+  margin-bottom: 10px;
+}
+.conflict-msg{
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--screen-ink);
+  margin-bottom: 14px;
+}
 .send-hint{
   font-family: var(--font-body);
   font-size: 10.5px;

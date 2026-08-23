@@ -38,6 +38,14 @@
       <div class="glass-glare"></div>
       <div class="toast" id="toast"></div>
 
+      <div class="conflict-modal" id="conflictModal">
+        <div class="conflict-card">
+          <div class="conflict-title">⏰ that time's taken</div>
+          <div class="conflict-msg" id="conflictMsg"></div>
+          <button class="lockbtn" id="conflictBack">PICK ANOTHER TIME</button>
+        </div>
+      </div>
+
       <!-- LEVEL 1 -->
       <section class="level active" data-level="0">
         <div class="level-tag">LEVEL 1 / 4 — THE ASK</div>
@@ -93,9 +101,9 @@
           <div class="note-titlebar">♥ love_note.txt</div>
           <div class="note-body" id="noteBody"></div>
         </div>
-        <a class="sendbtn secondary" id="addToCal" href="#" target="_blank" rel="noopener">ADD TO CALENDAR 📅</a>
+        <div class="cal-status" id="calStatus"></div>
         <a class="sendbtn" id="sendToOjas" href="#">SEND TO OJAS 💌</a>
-        <div class="send-hint">both open pre-filled with your picks</div>
+        <div class="send-hint">opens Messages with your picks filled in</div>
         <button class="replay" id="replay">↺ play again</button>
       </section>
 
