@@ -496,14 +496,27 @@ function launchConfetti(){
   }
 }
 
-/* ---------------- A/B buttons mirror primary actions ---------------- */
-document.getElementById('aBtn').addEventListener('click', ()=>{
+/* ---------------- A/B buttons + D-pad mirror level navigation ---------------- */
+function goForward(){
   const activeLevel = document.querySelector('.level.active').dataset.level;
   if(activeLevel === '0') yesBtn.click();
   else if(activeLevel === '1' && !dateNext.disabled) dateNext.click();
   else if(activeLevel === '2' && !document.getElementById('lockIn').disabled) document.getElementById('lockIn').click();
-});
-document.getElementById('bBtn').addEventListener('click', ()=> blip(220,0.06,'square'));
+  else blip(180, 0.08, 'sawtooth');
+}
+function goBack(){
+  const activeLevel = Number(document.querySelector('.level.active').dataset.level);
+  if(activeLevel === 1 || activeLevel === 2){
+    blip(320, 0.06, 'square');
+    setLevel(activeLevel - 1);
+  } else {
+    blip(180, 0.08, 'sawtooth');
+  }
+}
+document.getElementById('aBtn').addEventListener('click', goForward);
+document.getElementById('bBtn').addEventListener('click', goBack);
+document.querySelectorAll('.dpad-fwd').forEach(btn=> btn.addEventListener('click', goForward));
+document.querySelectorAll('.dpad-back').forEach(btn=> btn.addEventListener('click', goBack));
 
 /* ---------------- sound toggle ---------------- */
 document.getElementById('soundToggle').addEventListener('click', (e)=>{
