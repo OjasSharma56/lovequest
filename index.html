@@ -3,20 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <title>LOVEQUEST — kenzie.gba</title>
 <meta name="description" content="a tiny game cartridge, for kenzie">
 <meta property="og:title" content="LOVEQUEST">
 <meta property="og:description" content="a tiny game cartridge, for kenzie 💌">
+<meta property="og:image" content="https://ojassharma56.github.io/lovequest/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#211c2c">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="LOVEQUEST">
 
 </head>
 <body>
 
+<a class="skip-link" href="#screen">Skip to content</a>
+
 <div id="ambient"></div>
 
-<div class="console">
+<main class="console">
   <div class="strap-hole"></div>
 
   <div class="console-top">
@@ -36,6 +47,7 @@
     <div class="screen" id="screen">
       <div class="scanlines"></div>
       <div class="glass-glare"></div>
+      <div class="grain"></div>
       <div class="toast" id="toast"></div>
 
       <div class="conflict-modal" id="conflictModal">
@@ -49,7 +61,7 @@
       <!-- LEVEL 1 -->
       <section class="level active" data-level="0">
         <div class="level-tag">LEVEL 1 / 4 — THE ASK</div>
-        <div class="stage"><svg id="pigSprite" class="sprite" width="72" height="72"></svg></div>
+        <div class="stage"><svg id="pigSprite" class="sprite" width="72" height="72" aria-hidden="true"></svg></div>
         <h1 class="headline" id="question">will you go<br>out with me?</h1>
         <div class="ask-row">
           <button class="btn btn-yes" id="yesBtn">Lead the Way</button>
@@ -60,8 +72,9 @@
 
       <!-- LEVEL 2 -->
       <section class="level" data-level="1">
+        <button class="back-link" data-back="0">‹ back</button>
         <div class="level-tag">LEVEL 2 / 4 — PICK THE DATE</div>
-        <div class="stage" style="min-height:64px;"><svg id="calSprite" class="sprite" width="56" height="56"></svg></div>
+        <div class="stage stage-sm"><svg id="calSprite" class="sprite" width="56" height="56" aria-hidden="true"></svg></div>
         <h1 class="headline">Submit your availability.</h1>
         <div class="col">
           <div class="field-card">
@@ -83,10 +96,11 @@
 
       <!-- LEVEL 3 -->
       <section class="level" data-level="2">
+        <button class="back-link" data-back="1">‹ back</button>
         <div class="level-tag">LEVEL 3 / 4 — THE QUEST</div>
-        <h1 class="headline" style="margin-bottom:10px;">Choose your reward.</h1>
+        <h1 class="headline headline-tight">Choose your reward.</h1>
         <div class="grid" id="activityGrid"></div>
-        <div class="field-card" style="margin-top:10px;">
+        <div class="field-card field-card-tight">
           <label class="field-label" for="customActivity">OR TYPE YOUR OWN</label>
           <input type="text" id="customActivity" placeholder="something not on the list..." maxlength="60">
         </div>
@@ -96,7 +110,7 @@
       <!-- LEVEL 4 -->
       <section class="level" data-level="3">
         <div class="level-tag">LEVEL 4 / 4 — SAVE COMPLETE</div>
-        <h1 class="headline" style="font-size:12px;">a secret message<br>unlocked ♥</h1>
+        <h1 class="headline headline-sm">a secret message<br>unlocked ♥</h1>
         <div class="note-window">
           <div class="note-titlebar">♥ love_note.txt</div>
           <div class="note-body" id="noteBody"></div>
@@ -118,7 +132,7 @@
     </div>
     <div class="speaker"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
   </div>
-</div>
+</main>
 
 <footer>PRESS START ON YOUR HEART</footer>
 

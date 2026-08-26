@@ -306,6 +306,7 @@ CONFIG.activities.forEach(act=>{
   const svgNS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(svgNS,'svg');
   svg.setAttribute('width','28'); svg.setAttribute('height','28');
+  svg.setAttribute('aria-hidden','true');
   svg.classList.add('sprite');
   btn.appendChild(svg);
   const span = document.createElement('span');
@@ -371,6 +372,13 @@ function showConflictModal(conflicts){
 document.getElementById('conflictBack').addEventListener('click', ()=>{
   document.getElementById('conflictModal').classList.remove('show');
   setLevel(1);
+});
+
+document.querySelectorAll('.back-link').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    blip(320, 0.06, 'square');
+    setLevel(Number(btn.dataset.back));
+  });
 });
 
 /* ---------------- Level 4: note ---------------- */
