@@ -5,21 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&family=Yatra+One&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
-<title>LOVEQUEST — kenzie.gba</title>
-<meta name="description" content="a tiny game cartridge, for kenzie">
-<meta property="og:title" content="LOVEQUEST">
-<meta property="og:description" content="a tiny game cartridge, for kenzie 💌">
+<title>Ek Nayi Kahani — for MacKenzie</title>
+<meta name="description" content="a little something, for Choti">
+<meta property="og:title" content="Ek Nayi Kahani">
+<meta property="og:description" content="a little something, for Choti">
 <meta property="og:image" content="https://ojassharma56.github.io/lovequest/og-image.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#211c2c">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#2b0a17">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%AA%94%3C/text%3E%3C/svg%3E">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="LOVEQUEST">
-
+<meta name="apple-mobile-web-app-title" content="Kahani">
 </head>
 <body>
 
@@ -27,120 +26,133 @@
 
 <div id="ambient"></div>
 
-<main class="console">
-  <div class="strap-hole"></div>
+<main class="poster">
+  <div class="film film-l" aria-hidden="true"></div>
+  <div class="film film-r" aria-hidden="true"></div>
 
-  <div class="console-top">
-    <span class="brand">♦ LOVEQUEST</span>
-    <button class="sound-toggle" id="soundToggle" aria-pressed="false">SND: OFF</button>
-    <span class="led" id="led"></span>
+  <header class="marquee">
+    <span class="marquee-title">
+      <span class="hi" lang="hi">एक नई कहानी</span>
+      <span class="rm">ek nayi kahani</span>
+    </span>
+    <button class="sound-toggle" id="soundToggle" aria-pressed="false">♪ off</button>
+  </header>
+
+  <div class="pips" id="pips" aria-hidden="true">
+    <span class="pip" data-pip="0"></span>
+    <span class="pip" data-pip="1"></span>
+    <span class="pip" data-pip="2"></span>
+    <span class="pip" data-pip="3"></span>
+    <span class="pip" data-pip="4"></span>
   </div>
 
-  <div class="bezel">
-    <div class="pips" id="pips">
-      <span class="pip" data-pip="0"></span>
-      <span class="pip" data-pip="1"></span>
-      <span class="pip" data-pip="2"></span>
-      <span class="pip" data-pip="3"></span>
-    </div>
+  <div class="reel" id="screen">
+    <div class="grain"></div>
+    <div class="toast" id="toast" role="status"></div>
 
-    <div class="screen" id="screen">
-      <div class="scanlines"></div>
-      <div class="glass-glare"></div>
-      <div class="grain"></div>
-      <div class="toast" id="toast"></div>
-
-      <div class="conflict-modal" id="conflictModal">
-        <div class="conflict-card">
-          <div class="conflict-title">⏰ that time's taken</div>
-          <div class="conflict-msg" id="conflictMsg"></div>
-          <button class="lockbtn" id="conflictBack">PICK ANOTHER TIME</button>
-        </div>
+    <div class="conflict-modal" id="conflictModal">
+      <div class="conflict-card">
+        <div class="conflict-title">⏰ that time's taken</div>
+        <div class="conflict-msg" id="conflictMsg"></div>
+        <button class="lockbtn" id="conflictBack"><span lang="hi">दूसरा समय</span> · PICK ANOTHER</button>
       </div>
-
-      <!-- LEVEL 1 -->
-      <section class="level active" data-level="0">
-        <div class="level-tag">LEVEL 1 / 4 — THE ASK</div>
-        <div class="stage"><svg id="pigSprite" class="sprite" width="72" height="72" aria-hidden="true"></svg></div>
-        <h1 class="headline" id="question">will you go<br>out with me?</h1>
-        <div class="ask-row">
-          <button class="btn btn-yes" id="yesBtn">Lead the Way</button>
-          <button class="btn btn-no" id="noBtn">no</button>
-        </div>
-        <div class="evade-counter" id="evadeCounter">&nbsp;</div>
-      </section>
-
-      <!-- LEVEL 2 -->
-      <section class="level" data-level="1">
-        <button class="back-link" data-back="0">‹ back</button>
-        <div class="level-tag">LEVEL 2 / 4 — PICK THE DATE</div>
-        <div class="stage stage-sm"><svg id="calSprite" class="sprite" width="56" height="56" aria-hidden="true"></svg></div>
-        <h1 class="headline">Submit your availability.</h1>
-        <div class="col">
-          <div class="field-card">
-            <label class="field-label" for="dateInput">DATE</label>
-            <input type="date" id="dateInput">
-          </div>
-          <div class="field-card">
-            <span class="field-label">TIME OF DAY</span>
-            <div class="chip-row" id="todChips">
-              <button class="chip" data-tod="morning">☀ MORNING</button>
-              <button class="chip" data-tod="afternoon">⛅ AFTERNOON</button>
-              <button class="chip" data-tod="evening">🌇 EVENING</button>
-              <button class="chip" data-tod="night">☾ NIGHT</button>
-            </div>
-          </div>
-          <button class="lockbtn" id="dateNext" disabled>CONTINUE →</button>
-        </div>
-      </section>
-
-      <!-- LEVEL 3 -->
-      <section class="level" data-level="2">
-        <button class="back-link" data-back="1">‹ back</button>
-        <div class="level-tag">LEVEL 3 / 4 — THE QUEST</div>
-        <h1 class="headline headline-tight">Choose your reward.</h1>
-        <div class="grid" id="activityGrid"></div>
-        <div class="field-card field-card-tight">
-          <label class="field-label" for="customActivity">OR TYPE YOUR OWN</label>
-          <input type="text" id="customActivity" placeholder="something not on the list..." maxlength="60">
-        </div>
-        <button class="lockbtn" id="lockIn" disabled>LOCK IT IN</button>
-      </section>
-
-      <!-- LEVEL 4 -->
-      <section class="level" data-level="3">
-        <div class="level-tag">LEVEL 4 / 4 — SAVE COMPLETE</div>
-        <h1 class="headline headline-sm">a secret message<br>unlocked ♥</h1>
-        <div class="note-window">
-          <div class="note-titlebar">♥ love_note.txt</div>
-          <div class="note-body" id="noteBody"></div>
-        </div>
-        <div class="cal-status" id="calStatus"></div>
-        <a class="sendbtn" id="sendToOjas" href="#">SEND TO OJAS 💌</a>
-        <div class="send-hint">opens Messages with your picks filled in</div>
-        <button class="replay" id="replay">↺ play again</button>
-      </section>
-
     </div>
+
+    <!-- ACT I — THE ASK -->
+    <section class="level active" data-level="0">
+      <div class="level-tag">ACT I — THE ASK</div>
+      <div class="seal" aria-hidden="true"><svg id="pigSprite" class="sprite" width="64" height="64"></svg></div>
+      <p class="address">MacKenzie,</p>
+      <h1 class="headline-hi" id="question" lang="hi">डेट पे चलें?</h1>
+      <p class="roman">date pe chalein?</p>
+      <p class="subtitle">“Shall we go on a date?”</p>
+      <div class="ask-row">
+        <button class="btn btn-yes" id="yesBtn"><span class="hi" lang="hi">हाँ</span><span class="rm">haan</span></button>
+        <button class="btn btn-no" id="noBtn"><span class="hi" lang="hi">नहीं</span><span class="rm">nahi</span></button>
+      </div>
+      <div class="evade-counter" id="evadeCounter">haan = yes · nahi = no</div>
+    </section>
+
+    <!-- ACT II — HINDI CLASS -->
+    <section class="level" data-level="1">
+      <div class="level-tag">ACT II — HINDI CLASS</div>
+      <h1 class="headline-hi md" lang="hi">छोटी की हिंदी क्लास</h1>
+      <p class="roman">choti ki hindi class <span class="tr">· new words every time</span></p>
+      <div class="word-card">
+        <div class="step" id="qStep">WORD 1 / 5</div>
+        <div class="word-hi" id="qWord" lang="hi"></div>
+        <div class="word-rm" id="qRoman"></div>
+        <button class="listen" id="qListen">🔊 listen</button>
+        <div class="listen-note" id="qListenNote" aria-live="polite"></div>
+      </div>
+      <div class="opts" id="qOpts"></div>
+      <div class="feedback" id="qFeedback" aria-live="polite"></div>
+      <div class="points" id="qPoints"></div>
+      <button class="lockbtn" id="quizNext" disabled></button>
+    </section>
+
+    <!-- ACT III — THE DATE -->
+    <section class="level" data-level="2">
+      <div class="level-tag">ACT III — THE DATE</div>
+      <h1 class="headline-hi" lang="hi">कब मिलें?</h1>
+      <p class="roman">kab milein? <span class="tr">· when shall we meet?</span></p>
+      <div class="col">
+        <div class="field-card">
+          <label class="field-label" for="dateInput"><span lang="hi">तारीख़</span> · DATE</label>
+          <input type="date" id="dateInput">
+        </div>
+        <div class="field-card">
+          <span class="field-label"><span lang="hi">समय</span> · TIME OF DAY</span>
+          <div class="chip-row" id="todChips">
+            <button class="chip" data-tod="morning"><span class="hi" lang="hi">सुबह</span><span class="rm">subah · morning</span></button>
+            <button class="chip" data-tod="afternoon"><span class="hi" lang="hi">दोपहर</span><span class="rm">dopahar · afternoon</span></button>
+            <button class="chip" data-tod="evening"><span class="hi" lang="hi">शाम</span><span class="rm">shaam · evening</span></button>
+            <button class="chip" data-tod="night"><span class="hi" lang="hi">रात</span><span class="rm">raat · night</span></button>
+          </div>
+        </div>
+        <button class="lockbtn" id="dateNext" disabled><span lang="hi">आगे चलें</span> · CONTINUE →</button>
+      </div>
+    </section>
+
+    <!-- ACT IV — THE PLAN -->
+    <section class="level" data-level="3">
+      <div class="level-tag">ACT IV — THE PLAN</div>
+      <h1 class="headline-hi" lang="hi">क्या करें?</h1>
+      <p class="roman">kya karein? <span class="tr">· what shall we do?</span></p>
+      <div class="grid" id="activityGrid"></div>
+      <div class="field-card field-card-tight">
+        <label class="field-label" for="customActivity"><span lang="hi">या कुछ और</span> · OR SOMETHING ELSE</label>
+        <input type="text" id="customActivity" placeholder="your idea…" maxlength="60">
+      </div>
+      <button class="lockbtn" id="lockIn" disabled>पक्का · LOCK IT IN</button>
+    </section>
+
+    <!-- ACT V — FIN -->
+    <section class="level" data-level="4">
+      <div class="level-tag">ACT V — FIN</div>
+      <h1 class="headline-hi md" lang="hi">तुम्हारे लिए</h1>
+      <p class="roman">tumhare liye <span class="tr">· for you</span></p>
+      <div class="note-window">
+        <div class="note-head"><span lang="hi">ख़त</span> · khat</div>
+        <div class="note-body" id="noteBody"></div>
+        <div class="scroll-cue" id="scrollCue" aria-hidden="true">↓ MORE BELOW ↓</div>
+      </div>
+      <div class="cal-status" id="calStatus"></div>
+      <a class="sendbtn" id="sendToOjas" href="#">SEND TO OJAS 💌</a>
+      <div class="send-hint">opens Messages with your picks filled in</div>
+      <button class="replay" id="replay">↺ <span lang="hi">फिर से</span> · play again</button>
+    </section>
   </div>
 
-  <div class="controls">
-    <div class="dpad">
-      <button class="dpad-btn dpad-up dpad-fwd" aria-label="forward"></button>
-      <button class="dpad-btn dpad-down dpad-back" aria-label="back"></button>
-      <button class="dpad-btn dpad-left dpad-back" aria-label="back"></button>
-      <button class="dpad-btn dpad-right dpad-fwd" aria-label="forward"></button>
-    </div>
-    <div class="abbtns">
-      <button class="roundbtn" id="bBtn">B</button>
-      <button class="roundbtn" id="aBtn">A</button>
-    </div>
-    <div class="speaker"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-  </div>
+  <nav class="remote" aria-label="Move between acts">
+    <button class="remote-btn" id="backBtn"><span class="hi" lang="hi">◀ पीछे</span><span class="rm">peeche</span></button>
+    <button class="remote-btn" id="nextBtn"><span class="hi" lang="hi">आगे ▶</span><span class="rm">aage</span></button>
+  </nav>
 </main>
 
-<footer>PRESS START ON YOUR HEART</footer>
+<footer><span lang="hi">ओजस की तरफ़ से</span> · from Ojas, with love</footer>
 
+<script src="words.js"></script>
 <script src="script.js"></script>
 
 </body>
