@@ -706,10 +706,14 @@ window.addEventListener('pageshow', (e)=>{ if(e.persisted) location.reload(); })
 let hiddenAt = null;
 document.addEventListener('visibilitychange', ()=>{
   if(document.hidden){ hiddenAt = Date.now(); }
-  else if(hiddenAt !== null){
-    const away = Date.now() - hiddenAt;
-    hiddenAt = null;
-    if(away > RESET_AFTER_HIDDEN_MS) location.reload();
+  else {
+    /* every time the app comes back to the front, make sure it's the latest version */
+    if(window.__checkForUpdate) window.__checkForUpdate();
+    if(hiddenAt !== null){
+      const away = Date.now() - hiddenAt;
+      hiddenAt = null;
+      if(away > RESET_AFTER_HIDDEN_MS) location.reload();
+    }
   }
 });
 

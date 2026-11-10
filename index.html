@@ -6,7 +6,33 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&family=Yatra+One&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<meta name="app-version" content="2026-11-10.1">
+<script>
+/* Keeps a home-screen copy of the app current. On every load (and whenever the app is brought
+   back to the front) it asks the server for the live version number; if this page is older it
+   hops to a fresh copy. A new URL can never be answered from the old cache. */
+(function(){
+  var meta = document.querySelector('meta[name="app-version"]');
+  var mine = meta && meta.content;
+  function check(){
+    if(!window.fetch || !mine) return;
+    var ctl = window.AbortController ? new AbortController() : null;
+    var timer = ctl && setTimeout(function(){ ctl.abort(); }, 5000);
+    fetch('version.json?t=' + Date.now(), { cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(j){
+        if(timer) clearTimeout(timer);
+        if(!j || !j.v || j.v === mine) return;
+        if(location.search.indexOf('v=' + j.v) !== -1) return;   // already tried this version
+        location.replace(location.pathname + '?v=' + encodeURIComponent(j.v));
+      })
+      .catch(function(){});
+  }
+  window.__checkForUpdate = check;
+  check();
+})();
+</script>
+<link rel="stylesheet" href="style.css?v=2026-11-10.1">
 <title>Ek Nayi Kahani — for MacKenzie</title>
 <meta name="description" content="a little something, for Choti">
 <meta property="og:title" content="Ek Nayi Kahani">
@@ -181,8 +207,8 @@
 
 <footer><span lang="hi">ओजस की तरफ़ से</span> · from Ojas, with love</footer>
 
-<script src="words.js"></script>
-<script src="script.js"></script>
+<script src="words.js?v=2026-11-10.1"></script>
+<script src="script.js?v=2026-11-10.1"></script>
 
 </body>
 </html>
