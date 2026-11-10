@@ -58,10 +58,28 @@
       </div>
     </div>
 
-    <!-- ACT I — THE ASK -->
+    <!-- START — pick a path -->
     <section class="level active" data-level="0">
-      <div class="level-tag">ACT I — THE ASK</div>
+      <div class="level-tag">EK NAYI KAHANI</div>
       <div class="seal" aria-hidden="true"><svg id="pigSprite" class="sprite" width="64" height="64"></svg></div>
+      <h1 class="headline-hi md" lang="hi">नमस्ते, छोटी</h1>
+      <p class="roman">namaste, Choti <span class="tr">· pick one</span></p>
+      <div class="menu">
+        <button class="menu-btn menu-date" id="optDate">
+          <span class="em" aria-hidden="true">💌</span>
+          <span class="mt"><b>Ojas has a question</b><small lang="hi">ओजस को तुमसे कुछ पूछना है</small></span>
+        </button>
+        <button class="menu-btn menu-learn" id="optLearn">
+          <span class="em" aria-hidden="true">📖</span>
+          <span class="mt"><b>I’m just here to learn Hindi</b><small lang="hi">मैं बस हिंदी सीखने आई हूँ</small></span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ACT I — THE ASK -->
+    <section class="level" data-level="1">
+      <div class="level-tag">ACT I — THE ASK</div>
+      <div class="seal" aria-hidden="true"><svg id="pigSprite2" class="sprite" width="64" height="64"></svg></div>
       <p class="address">MacKenzie,</p>
       <h1 class="headline-hi" id="question" lang="hi">डेट पे चलें?</h1>
       <p class="roman">date pe chalein?</p>
@@ -74,8 +92,8 @@
     </section>
 
     <!-- ACT II — HINDI CLASS -->
-    <section class="level" data-level="1">
-      <div class="level-tag">ACT II — HINDI CLASS</div>
+    <section class="level" data-level="2">
+      <div class="level-tag" id="classTag">ACT II — HINDI CLASS</div>
       <h1 class="headline-hi md" lang="hi">छोटी की हिंदी क्लास</h1>
       <p class="roman">choti ki hindi class <span class="tr">· new words every time</span></p>
       <div class="word-card">
@@ -92,7 +110,7 @@
     </section>
 
     <!-- ACT III — THE DATE -->
-    <section class="level" data-level="2">
+    <section class="level" data-level="3">
       <div class="level-tag">ACT III — THE DATE</div>
       <h1 class="headline-hi" lang="hi">कब मिलें?</h1>
       <p class="roman">kab milein? <span class="tr">· when shall we meet?</span></p>
@@ -115,7 +133,7 @@
     </section>
 
     <!-- ACT IV — THE PLAN -->
-    <section class="level" data-level="3">
+    <section class="level" data-level="4">
       <div class="level-tag">ACT IV — THE PLAN</div>
       <h1 class="headline-hi" lang="hi">क्या करें?</h1>
       <p class="roman">kya karein? <span class="tr">· what shall we do?</span></p>
@@ -128,7 +146,7 @@
     </section>
 
     <!-- ACT V — FIN -->
-    <section class="level" data-level="4">
+    <section class="level" data-level="5">
       <div class="level-tag">ACT V — FIN</div>
       <h1 class="headline-hi md" lang="hi">तुम्हारे लिए</h1>
       <p class="roman">tumhare liye <span class="tr">· for you</span></p>
@@ -141,6 +159,17 @@
       <a class="sendbtn" id="sendToOjas" href="#">SEND TO OJAS 💌</a>
       <div class="send-hint">opens Messages with your picks filled in</div>
       <button class="replay" id="replay">↺ <span lang="hi">फिर से</span> · play again</button>
+    </section>
+
+    <!-- HINDI CLASS — results (learn-only path) -->
+    <section class="level" data-level="6">
+      <div class="level-tag">HINDI CLASS — DONE</div>
+      <h1 class="headline-hi md" lang="hi">शाबाश, छोटी!</h1>
+      <p class="roman" id="resScore"></p>
+      <ul class="result-words" id="resWords"></ul>
+      <p class="met" id="resMet"></p>
+      <button class="lockbtn" id="learnAgain"><span lang="hi">और सीखें</span> · ANOTHER ROUND</button>
+      <button class="replay" id="learnHome">← <span lang="hi">शुरुआत</span> · back to start</button>
     </section>
   </div>
 

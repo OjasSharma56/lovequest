@@ -15,11 +15,16 @@ const CAL_SECRET = "4fZw434IrwPNuwyfK7i2M0-9";
 const TOD_START_HOUR = { morning: 10, afternoon: 14, evening: 18, night: 20 };
 const EVENT_DURATION_HOURS = 2;
 
-/* Act II — how many words per visit */
-const ROUND_SIZE = 5;
+/* Hindi class — words per round */
+const DATE_ROUND_SIZE = 5;     // the short version inside the date path
+const LEARN_ROUND_SIZE = 10;   // "I'm just here to learn Hindi"
 const POINTS_PER_WORD = 10;
 
-/* Act IV — the activities, each with a Hindi word and a line of the love note it unlocks */
+/* the app starts completely fresh every time it's opened. If she leaves it open in the
+   background and comes back after this long, it resets too (as if she'd closed it). */
+const RESET_AFTER_HIDDEN_MS = 2 * 60 * 1000;
+
+/* the activities, each with a Hindi word and a line of the love note it unlocks */
 const CONFIG = {
   activities: [
     { id:"cook", em:"🍳", en:"Cooking together", hi:"खाना", rm:"khaana", text:"Cooking together",
@@ -53,6 +58,9 @@ const CONFIG = {
   closing: { hi:"तुम ख़ास हो, छोटी।", rm:"Tum khaas ho, Choti.", en:"You're special, Choti." },
   signoff: "— तुम्हारा ओजस ♥"
 };
+
+/* screens */
+const L = { MENU:0, ASK:1, CLASS:2, DATE:3, PLAN:4, FIN:5, RESULT:6 };
 
 /* ---------------- pixel pig (her favourite animal) ---------------- */
 function drawPixels(svgEl, rows, palette){
@@ -95,13 +103,12 @@ const PIG = [
 /* ---------------- elements + state ---------------- */
 const $ = id => document.getElementById(id);
 const yesBtn = $('yesBtn'), noBtn = $('noBtn'), evadeCounter = $('evadeCounter');
-const levelZero = document.querySelector('[data-level="0"]');
+const askLevel = document.querySelector(`[data-level="${L.ASK}"]`);
 const quizNext = $('quizNext');
 const dateInput = $('dateInput'), dateNext = $('dateNext'), lockIn = $('lockIn');
 const backBtn = $('backBtn'), nextBtn = $('nextBtn');
 
-/* acts: 0 ask · 1 hindi class · 2 date · 3 plan · 4 finale */
-const FINALE = 4;
+let mode = 'date';      // 'date' = the full story · 'learn' = just the Hindi class
 let evadeCount = 0;
 let selectedTod = null;
 let selectedActs = new Set();
@@ -113,6 +120,10 @@ let quiz = [];          // [{ id, opts:[ids], picked:null|index }]
 let quizIndex = 0;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/* nothing about a visit is saved — only which words she's already met (so words don't repeat).
+   Clear out anything left behind by older versions. */
+try{ ['kahani_state_v2', 'kahani_state_v1', 'lovequest_state_v1'].forEach(k => localStorage.removeItem(k)); }catch(e){}
+
 let toastTimer;
 function showToast(text, ms=2600){
   const toast = $('toast');
@@ -122,7 +133,7 @@ function showToast(text, ms=2600){
   toastTimer = setTimeout(()=> toast.classList.remove('show'), ms);
 }
 
-/* ---------------- the word bank + a fresh round every visit ---------------- */
+/* ---------------- the word bank + a fresh round every time ---------------- */
 const WORD_BY_ID = Object.fromEntries(WORDS.map(w => [w.rm, w]));
 const SEEN_KEY = 'kahani_seen_v1';
 
@@ -140,17 +151,16 @@ function loadSeen(){
 function saveSeen(list){
   try{ localStorage.setItem(SEEN_KEY, JSON.stringify(list)); }catch(e){}
 }
-/* words she hasn't met yet come first; once she's been through the whole bank it starts over */
-function newRound(){
+/* words she hasn't got right yet come first; once she's been through the whole bank it starts over */
+function newRound(size){
   const seen = loadSeen();
-  let fresh = WORDS.filter(w => !seen.includes(w.rm));
+  const fresh = WORDS.filter(w => !seen.includes(w.rm));
   let picked;
-  if(fresh.length >= ROUND_SIZE){
-    picked = shuffle(fresh).slice(0, ROUND_SIZE);
+  if(fresh.length >= size){
+    picked = shuffle(fresh).slice(0, size);
   } else {
-    const rest = fresh;
-    const filler = shuffle(WORDS.filter(w => !rest.includes(w))).slice(0, ROUND_SIZE - rest.length);
-    picked = shuffle(rest.concat(filler));
+    const filler = shuffle(WORDS.filter(w => !fresh.includes(w))).slice(0, size - fresh.length);
+    picked = shuffle(fresh.concat(filler));
     saveSeen([]);                       // new cycle begins
   }
   quiz = picked.map(w => {
@@ -160,11 +170,12 @@ function newRound(){
   quizIndex = 0;
   warmAudio();
 }
-function markRoundSeen(){
-  saveSeen([...new Set(loadSeen().concat(quiz.map(q => q.id)))]);
+function markSeen(id){
+  saveSeen([...new Set(loadSeen().concat(id))]);
 }
+function isRight(q){ return q.picked !== null && q.opts[q.picked] === q.id; }
 function quizScore(){
-  return quiz.reduce((s, q) => s + (q.picked !== null && q.opts[q.picked] === q.id ? POINTS_PER_WORD : 0), 0);
+  return quiz.reduce((s, q) => s + (isRight(q) ? POINTS_PER_WORD : 0), 0);
 }
 
 /* ---------------- audio: a real recording for every word (audio/<rm>.m4a) ---------------- */
@@ -200,68 +211,6 @@ $('qListen').addEventListener('click', () => {
   if(quiz[quizIndex]) playWord(WORD_BY_ID[quiz[quizIndex].id]);
 });
 
-/* ---------------- remember progress across visits ---------------- */
-const STORAGE_KEY = 'kahani_state_v2';
-
-function saveState(level){
-  try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      level,
-      date: dateInput.value,
-      tod: selectedTod,
-      acts: [...selectedActs],
-      custom: customActivity,
-      booked: calendarBooked,
-      round: quiz
-    }));
-  }catch(e){}
-}
-function clearState(){
-  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
-}
-function restoreState(){
-  let saved;
-  try{ saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); }catch(e){ return; }
-  if(!saved || typeof saved.level !== 'number' || saved.level < 1) return;
-
-  const validRound = Array.isArray(saved.round) && saved.round.length === ROUND_SIZE &&
-    saved.round.every(q => q && WORD_BY_ID[q.id] && Array.isArray(q.opts) && q.opts.length === 3 && q.opts.every(id => WORD_BY_ID[id]));
-  if(validRound){
-    quiz = saved.round;
-    const open = quiz.findIndex(q => q.picked === null);
-    quizIndex = open === -1 ? quiz.length - 1 : open;
-    warmAudio();
-  }
-  renderQuiz();
-
-  if(saved.date) dateInput.value = saved.date;
-  if(saved.tod){
-    selectedTod = saved.tod;
-    const chip = document.querySelector(`[data-tod="${saved.tod}"]`);
-    if(chip) chip.classList.add('sel');
-  }
-  refreshDateNext();
-
-  if(Array.isArray(saved.acts)){
-    saved.acts.forEach(id=>{
-      selectedActs.add(id);
-      const pill = document.querySelector(`.pill[data-id="${id}"]`);
-      if(pill) pill.classList.add('sel');
-    });
-  }
-  if(saved.custom){
-    customActivity = saved.custom;
-    $('customActivity').value = saved.custom;
-  }
-  refreshLockIn();
-
-  if(saved.level === FINALE){
-    calendarBooked = !!saved.booked;
-    buildNote();
-  }
-  setLevel(saved.level);
-}
-
 /* sound effects: tiny synthesized blips, no external files */
 let actx;
 function blip(freq=660, dur=0.08, type='triangle'){
@@ -280,44 +229,52 @@ function blip(freq=660, dur=0.08, type='triangle'){
 function activeLevel(){ return Number(document.querySelector('.level.active').dataset.level); }
 
 function canForward(n){
-  if(n === 0) return true;
-  if(n === 1) return !quizNext.disabled;
-  if(n === 2) return !dateNext.disabled;
-  if(n === 3) return !lockIn.disabled;
+  if(n === L.ASK) return true;
+  if(n === L.CLASS) return !quizNext.disabled;
+  if(n === L.DATE) return !dateNext.disabled;
+  if(n === L.PLAN) return !lockIn.disabled;
   return false;
+}
+function backTarget(n){
+  if(n === L.ASK) return L.MENU;
+  if(n === L.CLASS) return mode === 'learn' ? L.MENU : L.ASK;
+  if(n === L.DATE) return L.CLASS;
+  if(n === L.PLAN) return L.DATE;
+  return null;                          // menu, finale and results have no "back"
 }
 function refreshRemote(){
   const n = activeLevel();
-  backBtn.disabled = !(n >= 1 && n <= 3);
+  backBtn.disabled = backTarget(n) === null;
   nextBtn.disabled = !canForward(n);
 }
 function setLevel(n){
   document.querySelectorAll('.level').forEach(el=>{
     el.classList.toggle('active', Number(el.dataset.level) === n);
   });
+  /* progress pips only make sense on the date path (acts I–V) */
+  const showPips = mode === 'date' && n >= L.ASK && n <= L.FIN;
+  $('pips').classList.toggle('off', !showPips);
   document.querySelectorAll('.pip').forEach(p=>{
-    p.classList.toggle('done', Number(p.dataset.pip) <= n);
+    p.classList.toggle('done', showPips && Number(p.dataset.pip) <= n - 1);
   });
+  $('classTag').textContent = mode === 'learn' ? 'HINDI CLASS' : 'ACT II — HINDI CLASS';
   refreshRemote();
+  if(n === L.ASK) placeNo();
   if(window.__fitPoster) window.__fitPoster();
-  saveState(n);
 }
 function goForward(){
   const n = activeLevel();
   if(!canForward(n)){ blip(180, 0.08, 'sawtooth'); return; }
-  if(n === 0) yesBtn.click();
-  else if(n === 1) quizNext.click();
-  else if(n === 2) dateNext.click();
-  else if(n === 3) lockIn.click();
+  if(n === L.ASK) yesBtn.click();
+  else if(n === L.CLASS) quizNext.click();
+  else if(n === L.DATE) dateNext.click();
+  else if(n === L.PLAN) lockIn.click();
 }
 function goBack(){
-  const n = activeLevel();
-  if(n >= 1 && n <= 3){
-    blip(320, 0.06);
-    setLevel(n - 1);
-  } else {
-    blip(180, 0.08, 'sawtooth');
-  }
+  const t = backTarget(activeLevel());
+  if(t === null){ blip(180, 0.08, 'sawtooth'); return; }
+  blip(320, 0.06);
+  setLevel(t);
 }
 backBtn.addEventListener('click', goBack);
 nextBtn.addEventListener('click', goForward);
@@ -328,16 +285,32 @@ document.addEventListener('keydown', (e)=>{
   else if(e.key === 'ArrowLeft') goBack();
 });
 
-/* ---------------- Act I: the ask ---------------- */
+/* ---------------- start menu ---------------- */
 drawPixels($('pigSprite'), PIG, PAL);
+drawPixels($('pigSprite2'), PIG, PAL);
 
+$('optDate').addEventListener('click', ()=>{
+  blip(880, 0.12);
+  mode = 'date';
+  if(quiz.length !== DATE_ROUND_SIZE){ newRound(DATE_ROUND_SIZE); renderQuiz(); }
+  setLevel(L.ASK);
+});
+$('optLearn').addEventListener('click', ()=>{
+  blip(880, 0.12);
+  mode = 'learn';
+  newRound(LEARN_ROUND_SIZE);
+  renderQuiz();
+  setLevel(L.CLASS);
+});
+
+/* ---------------- Act I: the ask ---------------- */
 function rectsOverlap(a, b, pad){
   return !(a.right + pad < b.left || a.left - pad > b.right || a.bottom + pad < b.top || a.top - pad > b.bottom);
 }
 
 function dodge(){
   if(reduceMotion) return;
-  const hostRect = levelZero.getBoundingClientRect();
+  const hostRect = askLevel.getBoundingClientRect();
   const noW = noBtn.offsetWidth, noH = noBtn.offsetHeight;
   const padX = 14, safeBottom = 34;
   const toLocal = (r) => ({
@@ -346,7 +319,7 @@ function dodge(){
   });
   const yesLocal = toLocal(yesBtn.getBoundingClientRect());
   const headlineLocal = toLocal($('question').getBoundingClientRect());
-  const askLocal = toLocal(document.querySelector('[data-level="0"] .ask-row').getBoundingClientRect());
+  const askLocal = toLocal(askLevel.querySelector('.ask-row').getBoundingClientRect());
   const minY = Math.max(askLocal.top - 26, headlineLocal.bottom + 40);
   const maxX = Math.max(hostRect.width - noW - padX*2, 20);
   const maxY = Math.max(hostRect.height - noH - safeBottom - minY, 20);
@@ -384,7 +357,7 @@ noBtn.addEventListener('click', (e)=>{ e.preventDefault(); dodge(); });
 
 function placeNo(){
   if(evadeCount > 0) return;
-  const row = document.querySelector('[data-level="0"] .ask-row');
+  const row = askLevel.querySelector('.ask-row');
   const rowRect = row.getBoundingClientRect();
   const yesRect = yesBtn.getBoundingClientRect();
   const noW = noBtn.offsetWidth || 56, noH = noBtn.offsetHeight || 44;
@@ -398,14 +371,14 @@ if(document.fonts && document.fonts.ready) document.fonts.ready.then(placeNo);
 
 yesBtn.addEventListener('click', ()=>{
   blip(880, 0.12);
-  setLevel(1);
+  setLevel(L.CLASS);
 });
 
-/* ---------------- Act II: Choti's Hindi class ---------------- */
+/* ---------------- Hindi class (Act II of the date path, or the whole point of the learn path) ---------------- */
 const qOpts = $('qOpts'), qFeedback = $('qFeedback');
 
 function pointsText(){
-  return `PYAAR POINTS ♥ ${quizScore()} / ${ROUND_SIZE * POINTS_PER_WORD}`;
+  return `PYAAR POINTS ♥ ${quizScore()} / ${quiz.length * POINTS_PER_WORD}`;
 }
 function renderQuiz(){
   const q = quiz[quizIndex];
@@ -430,7 +403,9 @@ function renderQuiz(){
     qOpts.appendChild(b);
   });
   qFeedback.innerHTML = '';
-  quizNext.textContent = quizIndex < quiz.length - 1 ? 'अगला शब्द · NEXT WORD →' : 'आगे चलें · CONTINUE →';
+  const last = quizIndex === quiz.length - 1;
+  quizNext.textContent = !last ? 'अगला शब्द · NEXT WORD →'
+    : (mode === 'learn' ? 'नतीजा · SEE HOW I DID →' : 'आगे चलें · CONTINUE →');
   if(q.picked !== null) revealAnswer(q.picked);
   else quizNext.disabled = true;
   $('qPoints').textContent = pointsText();
@@ -462,12 +437,11 @@ qOpts.addEventListener('click', (e)=>{
   if(!btn || btn.disabled || q.picked !== null) return;
   const i = Number(btn.dataset.i);
   q.picked = i;
-  if(quizIndex === 0) markRoundSeen();
   const right = q.opts[i] === q.id;
+  if(right) markSeen(q.id);             // missed words stay "new" so they come back
   blip(right ? 880 : 240, right ? 0.14 : 0.12, right ? 'triangle' : 'sawtooth');
   revealAnswer(i);
   $('qPoints').textContent = pointsText();
-  saveState(1);
   refreshRemote();
 });
 quizNext.addEventListener('click', ()=>{
@@ -475,11 +449,43 @@ quizNext.addEventListener('click', ()=>{
   if(quizIndex < quiz.length - 1){
     quizIndex++;
     renderQuiz();
-    saveState(1);
     if(window.__fitPoster) window.__fitPoster();
+  } else if(mode === 'learn'){
+    showResults();
+    setLevel(L.RESULT);
   } else {
-    setLevel(2);
+    setLevel(L.DATE);
   }
+});
+
+/* ---------------- learn-only path: results ---------------- */
+function showResults(){
+  const total = quiz.length * POINTS_PER_WORD;
+  const score = quizScore();
+  $('resScore').textContent = `${score} / ${total} pyaar points ♥`;
+  const list = $('resWords');
+  list.innerHTML = '';
+  quiz.forEach(q => {
+    const w = WORD_BY_ID[q.id];
+    const li = document.createElement('li');
+    if(isRight(q)) li.className = 'ok';
+    const hi = document.createElement('span'); hi.className = 'rh'; hi.lang = 'hi'; hi.textContent = w.hi;
+    const rr = document.createElement('span'); rr.className = 'rr';
+    rr.textContent = `${w.rm} · ${w.en}${isRight(q) ? ' ✓' : ''}`;
+    li.append(hi, rr);
+    list.appendChild(li);
+  });
+  $('resMet').textContent = `WORDS LEARNED · ${loadSeen().length} / ${WORDS.length}`;
+}
+$('learnAgain').addEventListener('click', ()=>{
+  blip(880, 0.12);
+  newRound(LEARN_ROUND_SIZE);
+  renderQuiz();
+  setLevel(L.CLASS);
+});
+$('learnHome').addEventListener('click', ()=>{
+  blip(320, 0.06);
+  setLevel(L.MENU);
 });
 
 /* ---------------- Act III: the date ---------------- */
@@ -490,7 +496,7 @@ function refreshDateNext(){
   dateNext.disabled = !(dateInput.value && selectedTod);
   refreshRemote();
 }
-dateInput.addEventListener('change', ()=>{ refreshDateNext(); saveState(2); });
+dateInput.addEventListener('change', refreshDateNext);
 $('todChips').addEventListener('click', (e)=>{
   const chip = e.target.closest('.chip');
   if(!chip) return;
@@ -499,11 +505,10 @@ $('todChips').addEventListener('click', (e)=>{
   selectedTod = chip.dataset.tod;
   blip(500, 0.05);
   refreshDateNext();
-  saveState(2);
 });
 dateNext.addEventListener('click', ()=>{
   blip(700, 0.08);
-  setLevel(3);
+  setLevel(L.PLAN);
 });
 
 /* ---------------- Act IV: the plan ---------------- */
@@ -533,12 +538,10 @@ grid.addEventListener('click', (e)=>{
   selectedActs.has(id) ? selectedActs.delete(id) : selectedActs.add(id);
   blip(selectedActs.has(id) ? 620 : 260, 0.05);
   refreshLockIn();
-  saveState(3);
 });
 $('customActivity').addEventListener('input', (e)=>{
   customActivity = e.target.value;
   refreshLockIn();
-  saveState(3);
 });
 lockIn.addEventListener('click', ()=>{
   blip(988, 0.15);
@@ -554,7 +557,7 @@ lockIn.addEventListener('click', ()=>{
       }
       calendarBooked = (res.status === 'ok');
       buildNote();
-      setLevel(FINALE);
+      setLevel(L.FIN);
       launchConfetti();
     })
     .catch(() => {
@@ -562,7 +565,7 @@ lockIn.addEventListener('click', ()=>{
       refreshLockIn();
       calendarBooked = false;
       buildNote();
-      setLevel(FINALE);
+      setLevel(L.FIN);
       launchConfetti();
     });
 });
@@ -576,7 +579,7 @@ function showConflictModal(conflicts){
 }
 $('conflictBack').addEventListener('click', ()=>{
   $('conflictModal').classList.remove('show');
-  setLevel(2);
+  setLevel(L.DATE);
 });
 
 /* ---------------- Act V: the note ---------------- */
@@ -693,20 +696,21 @@ $('sendToOjas').addEventListener('click', (e)=>{
   btn.classList.add('done');
 });
 
-$('replay').addEventListener('click', ()=>{
-  evadeCount = 0; selectedTod = null; selectedActs = new Set(); customActivity = '';
-  achievementShown = false; calendarBooked = false;
-  document.querySelectorAll('.chip.sel, .pill.sel').forEach(el=>el.classList.remove('sel'));
-  $('customActivity').value = '';
-  lockIn.disabled = true;
-  dateNext.disabled = true;
-  dateInput.value = '';
-  evadeCounter.textContent = evadeCounterText(0);
-  newRound();
-  renderQuiz();
-  clearState();
-  setLevel(0);
-  placeNo();
+/* "play again" = a completely fresh start */
+$('replay').addEventListener('click', ()=> location.reload());
+
+/* ---------------- fresh start every time she opens it ---------------- */
+/* coming back from the browser's back/forward cache */
+window.addEventListener('pageshow', (e)=>{ if(e.persisted) location.reload(); });
+/* coming back to a tab / home-screen app that sat in the background for a while */
+let hiddenAt = null;
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){ hiddenAt = Date.now(); }
+  else if(hiddenAt !== null){
+    const away = Date.now() - hiddenAt;
+    hiddenAt = null;
+    if(away > RESET_AFTER_HIDDEN_MS) location.reload();
+  }
 });
 
 /* ---------------- confetti: marigold petals + hearts ---------------- */
@@ -754,12 +758,11 @@ $('soundToggle').addEventListener('click', (e)=>{
   }
 })();
 
-/* ---------------- boot ---------------- */
-newRound();
+/* ---------------- boot: always the start menu ---------------- */
+newRound(DATE_ROUND_SIZE);
 renderQuiz();
 refreshLockIn();
-restoreState();
-refreshRemote();
+setLevel(L.MENU);
 
 /* ---------------- scale the poster to always fit the viewport ---------------- */
 (function fitToScreen(){
