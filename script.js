@@ -80,12 +80,15 @@ function drawPixels(svgEl, rows, palette){
     }
   }
 }
-const PAL = { k:'#2b0a17', d:'#b4435f', p:'#f4a6b8' };
+const PAL = { k:'#24101a', d:'#b4435f', p:'#f7b1c1', r:'#d42a3c', w:'#ffffff' };
+/* …wearing a Santa hat for the season */
 const PIG = [
-".kkkkk.......kkkkk.",
-"kppppk.......kppppk",
-"kppppkk.....kkppppk",
-"kpppppkk...kkpppppk",
+"...........ww......",
+".........rrww......",
+".kkkkk..rrr..kkkkk.",
+"kppppk.rrrrr.kppppk",
+"kppppkrrrrrrrkppppk",
+"kpppppwwwwwwwpppppk",
 ".kpppppkkkkkpppppk.",
 ".kpppppppppppppppk.",
 ".kppkkppppppkkpppk.",
@@ -717,12 +720,12 @@ document.addEventListener('visibilitychange', ()=>{
   }
 });
 
-/* ---------------- confetti: marigold petals + hearts ---------------- */
+/* ---------------- confetti: stars, hearts and snowflakes ---------------- */
 function launchConfetti(){
   const screen = $('screen');
   const count = reduceMotion ? 6 : 22;
-  const glyphs = ['✿', '♥', '✿'];
-  const colors = ['#f0b429', '#b83a57', '#d98a1c'];
+  const glyphs = ['✦', '♥', '❄︎'];
+  const colors = ['#e9b949', '#cf3445', '#2c7a52'];
   for(let i=0;i<count;i++){
     const h = document.createElement('div');
     h.textContent = glyphs[i % glyphs.length];
@@ -745,19 +748,19 @@ $('soundToggle').addEventListener('click', (e)=>{
   if(soundOn) blip(660, 0.08);
 });
 
-/* ---------------- ambient marigold petals ---------------- */
+/* ---------------- ambient: falling snow ---------------- */
 (function ambient(){
   if(reduceMotion) return;
   const host = $('ambient');
-  const glyphs = ['✿', '·', '♥', '✿'];
-  for(let i=0;i<14;i++){
+  for(let i=0;i<34;i++){
     const s = document.createElement('span');
-    s.textContent = glyphs[Math.floor(Math.random()*glyphs.length)];
+    const size = 2 + Math.random()*5;
+    s.style.width = s.style.height = size.toFixed(1) + 'px';
     s.style.left = Math.random()*100 + '%';
-    s.style.setProperty('--dx', (Math.random()*80-40)+'px');
-    s.style.animationDuration = (14 + Math.random()*14) + 's';
-    s.style.animationDelay = (Math.random()*14) + 's';
-    s.style.fontSize = (10 + Math.random()*10) + 'px';
+    s.style.setProperty('--dx', (Math.random()*90-45)+'px');
+    s.style.setProperty('--o', (0.35 + Math.random()*0.55).toFixed(2));
+    s.style.animationDuration = (9 + Math.random()*13) + 's';
+    s.style.animationDelay = (-Math.random()*20) + 's';   // negative = already mid-fall on load
     host.appendChild(s);
   }
 })();
@@ -774,12 +777,18 @@ setLevel(L.MENU);
   const MARGIN = 28;
   function fit(){
     el.style.transform = 'none';
+    el.style.marginTop = el.style.marginBottom = '';
     const vw = (window.visualViewport ? window.visualViewport.width : window.innerWidth);
     const vh = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
     const footerH = document.querySelector('footer').offsetHeight + 16;
     const rect = el.getBoundingClientRect();
     const scale = Math.min(1, (vw - MARGIN) / rect.width, (vh - MARGIN - footerH) / rect.height);
     el.style.transform = scale < 1 ? `scale(${scale})` : 'none';
+    /* a scaled element still takes up its full-size space — pull the slack back in so the footer stays on screen */
+    if(scale < 1){
+      const slack = -(rect.height * (1 - scale) / 2) + 'px';
+      el.style.marginTop = slack; el.style.marginBottom = slack;
+    }
   }
   window.__fitPoster = fit;
   fit();
