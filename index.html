@@ -1,12 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="bollywood">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#2b0a17">
+<script>
+/* Picks the look by date, every year, with no push needed:
+   Christmas Nov 16 – Dec 27 · New Year Dec 28 – Jan 6 · Valentine's Feb 1 – 15 · Bollywood the rest.
+   Add ?theme=xmas|newyear|valentine|bollywood to the URL to preview one. */
+(function(){
+  var d = new Date(), m = d.getMonth() + 1, day = d.getDate(), t = 'bollywood';
+  if ((m === 11 && day >= 16) || (m === 12 && day <= 27)) t = 'xmas';
+  else if ((m === 12 && day >= 28) || (m === 1 && day <= 6)) t = 'newyear';
+  else if (m === 2 && day <= 15) t = 'valentine';
+  var q = location.search.match(/[?&]theme=(bollywood|xmas|newyear|valentine)/);
+  if (q) t = q[1];
+  document.documentElement.setAttribute('data-theme', t);
+  var colors = { bollywood:'#2b0a17', xmas:'#0f2e22', newyear:'#0c1230', valentine:'#4d0c24' };
+  document.querySelector('meta[name="theme-color"]').content = colors[t];
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&family=Rozha+One&family=Mountains+of+Christmas:wght@700&display=swap" rel="stylesheet">
-<meta name="app-version" content="2026-11-16.2">
+<link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&family=Yatra+One&family=Rozha+One&family=Mountains+of+Christmas:wght@700&family=Limelight&family=Pacifico&display=swap" rel="stylesheet">
+<meta name="app-version" content="2026-11-17.1">
 <script>
 /* Keeps a home-screen copy of the app current. On every load (and whenever the app is brought
    back to the front) it asks the server for the live version number; if this page is older it
@@ -32,15 +49,14 @@
   check();
 })();
 </script>
-<link rel="stylesheet" href="style.css?v=2026-11-16.2">
+<link rel="stylesheet" href="style.css?v=2026-11-17.1">
 <title>Ek Nayi Kahani — for MacKenzie</title>
 <meta name="description" content="a little something, for Choti">
 <meta property="og:title" content="Ek Nayi Kahani">
 <meta property="og:description" content="a little something, for Choti">
 <meta property="og:image" content="https://ojassharma56.github.io/lovequest/og-image.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#0f2e22">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%84%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%B7%3C/text%3E%3C/svg%3E">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -53,13 +69,13 @@
 <div id="ambient"></div>
 
 <main class="poster">
-  <div class="cane cane-l" aria-hidden="true"></div>
-  <div class="cane cane-r" aria-hidden="true"></div>
+  <div class="edge edge-l" aria-hidden="true"></div>
+  <div class="edge edge-r" aria-hidden="true"></div>
 
   <header class="marquee">
     <span class="marquee-title">
-      <span class="hi" lang="hi">मेरी क्रिसमस</span>
-      <span class="rm">merry christmas · ek nayi kahani</span>
+      <span class="hi" lang="hi" id="mqHi">एक नई कहानी</span>
+      <span class="rm" id="mqRm">ek nayi kahani</span>
     </span>
     <button class="sound-toggle" id="soundToggle" aria-pressed="false">♪ off</button>
   </header>
@@ -88,20 +104,32 @@
 
     <!-- START — pick a path -->
     <section class="level active" data-level="0">
-      <div class="level-tag">CHRISTMAS EDITION</div>
-      <div class="seal" aria-hidden="true"><svg id="pigSprite" class="sprite" width="64" height="64"></svg></div>
+      <div class="level-tag" id="startTag">EK NAYI KAHANI</div>
+      <div class="seal seal-sm" aria-hidden="true"><svg id="pigSprite" class="sprite" width="52" height="52"></svg></div>
       <h1 class="headline-hi md" lang="hi">नमस्ते, छोटी</h1>
-      <p class="roman">namaste, Choti <span class="tr">· pick one</span></p>
+      <button class="streak-chip" id="streakChip" aria-label="Your streak">
+        <span class="flame" aria-hidden="true">🔥</span>
+        <b id="chipCount">0</b>
+        <span class="st-text" id="chipText">day streak</span>
+        <span class="week-mini" id="weekMini" aria-hidden="true"></span>
+      </button>
+      <div class="countdown" id="countdown" hidden></div>
       <div class="menu">
         <button class="menu-btn menu-date" id="optDate">
-          <span class="em" aria-hidden="true">🎁</span>
+          <span class="em" aria-hidden="true" id="dateEmoji">💌</span>
           <span class="mt"><b>Ojas has a question</b><small lang="hi">ओजस को तुमसे कुछ पूछना है</small></span>
+        </button>
+        <button class="menu-btn menu-daily" id="optDaily">
+          <span class="em" aria-hidden="true">🔥</span>
+          <span class="mt"><b>Today’s word</b><small lang="hi">आज का शब्द · aaj ka shabd</small></span>
+          <span class="badge" id="dailyBadge"></span>
         </button>
         <button class="menu-btn menu-learn" id="optLearn">
           <span class="em" aria-hidden="true">📖</span>
           <span class="mt"><b>I’m just here to learn Hindi</b><small lang="hi">मैं बस हिंदी सीखने आई हूँ</small></span>
         </button>
       </div>
+      <button class="notes-link" id="notesLink" hidden>🎧 notes from Ojas</button>
     </section>
 
     <!-- ACT I — THE ASK -->
@@ -119,11 +147,14 @@
       <div class="evade-counter" id="evadeCounter">haan = yes · nahi = no</div>
     </section>
 
-    <!-- ACT II — HINDI CLASS -->
+    <!-- ACT II — HINDI CLASS (also the daily word and the learn-only path) -->
     <section class="level" data-level="2">
       <div class="level-tag" id="classTag">ACT II — HINDI CLASS</div>
       <h1 class="headline-hi md" lang="hi">छोटी की हिंदी क्लास</h1>
-      <p class="roman">choti ki hindi class <span class="tr">· new words every time</span></p>
+      <div class="mode-toggle" id="modeToggle" role="group" aria-label="How to practise">
+        <button id="modeRead" class="on" aria-pressed="true">👀 read</button>
+        <button id="modeListen" aria-pressed="false">👂 listen</button>
+      </div>
       <div class="word-card">
         <div class="step" id="qStep">WORD 1 / 5</div>
         <div class="word-hi" id="qWord" lang="hi"></div>
@@ -194,24 +225,52 @@
       <div class="level-tag">HINDI CLASS — DONE</div>
       <h1 class="headline-hi md" lang="hi">शाबाश, छोटी!</h1>
       <p class="roman" id="resScore"></p>
+      <button class="gift" id="resGift" hidden>🎁 Ojas left you a voice note</button>
       <ul class="result-words" id="resWords"></ul>
       <p class="met" id="resMet"></p>
       <button class="lockbtn" id="learnAgain"><span lang="hi">और सीखें</span> · ANOTHER ROUND</button>
       <button class="replay" id="learnHome">← <span lang="hi">शुरुआत</span> · back to start</button>
     </section>
+
+    <!-- STREAK -->
+    <section class="level" data-level="7">
+      <div class="level-tag"><span lang="hi">लगातार</span> · STREAK</div>
+      <div class="flame-big" id="flameBig"><span aria-hidden="true">🔥</span><b id="stCount">0</b></div>
+      <p class="roman" id="stLine"></p>
+      <ul class="week-row" id="weekRow"></ul>
+      <button class="gift" id="stGift" hidden>🎁 Ojas left you a voice note</button>
+      <div class="today-card" id="todayCard">
+        <div class="step">TODAY’S WORD · <span lang="hi">आज का शब्द</span></div>
+        <div class="tw-hi" id="twHi" lang="hi"></div>
+        <div class="tw-rm" id="twRm"></div>
+        <button class="listen" id="twListen">🔊 listen</button>
+      </div>
+      <button class="lockbtn" id="stAction"></button>
+      <p class="fine" id="stFine"></p>
+      <button class="replay" id="stHome">← <span lang="hi">शुरुआत</span> · back to start</button>
+    </section>
+
+    <!-- VOICE NOTES FROM OJAS -->
+    <section class="level" data-level="8">
+      <div class="level-tag">🎧 FROM OJAS</div>
+      <h1 class="headline-hi md" lang="hi">तुम्हारे लिए</h1>
+      <p class="roman">tumhare liye <span class="tr">· unlock one at every milestone</span></p>
+      <ul class="notes" id="notesList"></ul>
+      <button class="replay" id="notesHome">← <span lang="hi">शुरुआत</span> · back to start</button>
+    </section>
   </div>
   </div>
 
-  <nav class="remote" aria-label="Move between acts">
+  <nav class="remote" aria-label="Move between screens">
     <button class="remote-btn" id="backBtn"><span class="hi" lang="hi">◀ पीछे</span><span class="rm">peeche</span></button>
     <button class="remote-btn" id="nextBtn"><span class="hi" lang="hi">आगे ▶</span><span class="rm">aage</span></button>
   </nav>
 </main>
 
-<footer><span lang="hi">ओजस की तरफ़ से</span> · <span class="festive">Merry Christmas, Choti</span></footer>
+<footer><span lang="hi">ओजस की तरफ़ से</span> · <span class="festive" id="footFestive">from Ojas, with love</span></footer>
 
-<script src="words.js?v=2026-11-16.2"></script>
-<script src="script.js?v=2026-11-16.2"></script>
+<script src="words.js?v=2026-11-17.1"></script>
+<script src="script.js?v=2026-11-17.1"></script>
 
 </body>
 </html>
