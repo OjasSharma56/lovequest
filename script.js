@@ -19,6 +19,9 @@ const EVENT_DURATION_HOURS = 2;
 const DATE_ROUND_SIZE = 5;     // the short version inside the date path
 const LEARN_ROUND_SIZE = 10;   // "I'm just here to learn Hindi"
 const POINTS_PER_WORD = 10;
+/* words tagged with this season in words.js get a guaranteed share of every round ("" = off) */
+const SEASON = "xmas";
+const SEASON_SHARE = 0.4;
 
 /* the app starts completely fresh every time it's opened. If she leaves it open in the
    background and comes back after this long, it resets too (as if she'd closed it). */
@@ -160,7 +163,11 @@ function newRound(size){
   const fresh = WORDS.filter(w => !seen.includes(w.rm));
   let picked;
   if(fresh.length >= size){
-    picked = shuffle(fresh).slice(0, size);
+    const seasonal = SEASON
+      ? shuffle(fresh.filter(w => w.season === SEASON)).slice(0, Math.ceil(size * SEASON_SHARE))
+      : [];
+    const rest = shuffle(fresh.filter(w => !seasonal.includes(w))).slice(0, size - seasonal.length);
+    picked = shuffle(seasonal.concat(rest));
   } else {
     const filler = shuffle(WORDS.filter(w => !fresh.includes(w))).slice(0, size - fresh.length);
     picked = shuffle(fresh.concat(filler));

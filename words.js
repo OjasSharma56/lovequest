@@ -94,5 +94,20 @@ const WORDS = [
 
   /* me & you */
   { hi:"मैं",       rm:"main",       en:"I",            e:"🙋" },
-  { hi:"तुम",       rm:"tum",        en:"you",          e:"👉" }
+  { hi:"तुम",       rm:"tum",        en:"you",          e:"👉" },
+
+  /* Christmas (season:"xmas" — these get a guaranteed spot in every round while the theme is on) */
+  { hi:"तोहफ़ा",    rm:"tohfa",      en:"gift",         e:"🎁", season:"xmas" },
+  { hi:"बर्फ़",     rm:"barf",       en:"snow",         e:"❄️", season:"xmas" },
+  { hi:"सर्दी",     rm:"sardi",      en:"winter",       e:"🧣", season:"xmas" },
+  { hi:"घंटी",      rm:"ghanti",     en:"bell",         e:"🔔", season:"xmas" },
+  { hi:"मोमबत्ती",  rm:"mombatti",   en:"candle",       e:"🕯️", season:"xmas" },
+  { hi:"रोशनी",     rm:"roshni",     en:"light",        e:"💡", season:"xmas" },
+  { hi:"ख़ुशी",     rm:"khushi",     en:"happiness",    e:"😄", season:"xmas" },
+  { hi:"परिवार",    rm:"parivaar",   en:"family",       e:"👨‍👩‍👧", season:"xmas" },
+  { hi:"गाना",      rm:"gaana",      en:"song",         e:"🎶", season:"xmas" },
+  { hi:"हिरन",      rm:"hiran",      en:"deer",         e:"🦌", season:"xmas" },
+  { hi:"मोज़ा",     rm:"moza",       en:"sock",         e:"🧦", season:"xmas" },
+  { hi:"टोपी",      rm:"topi",       en:"hat",          e:"🎩", season:"xmas" },
+  { hi:"जादू",      rm:"jaadu",      en:"magic",        e:"🪄", season:"xmas" }
 ];
