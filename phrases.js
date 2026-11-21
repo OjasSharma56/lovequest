@@ -1,0 +1,27 @@
+/* Phrases — level 2 of the Hindi class (only phrases with a recording in phrases/<id>.m4a). */
+const PHRASES = [
+  {"id":"kaisiho","hi":"कैसी हो?","rm":"kaisi ho?","en":"how are you?","e":"👋"},
+  {"id":"mainthikhoon","hi":"मैं ठीक हूँ","rm":"main theek hoon","en":"I'm fine","e":"🙂"},
+  {"id":"mujhechai","hi":"मुझे चाय चाहिए","rm":"mujhe chai chahiye","en":"I want tea","e":"☕"},
+  {"id":"mujhepaani","hi":"मुझे पानी चाहिए","rm":"mujhe paani chahiye","en":"I want water","e":"💧"},
+  {"id":"mujhebhookh","hi":"मुझे भूख लगी है","rm":"mujhe bhookh lagi hai","en":"I'm hungry","e":"🍽️"},
+  {"id":"mujhepyaas","hi":"मुझे प्यास लगी है","rm":"mujhe pyaas lagi hai","en":"I'm thirsty","e":"🥤"},
+  {"id":"yehkyahai","hi":"यह क्या है?","rm":"yeh kya hai?","en":"what is this?","e":"❓"},
+  {"id":"yehmeraghar","hi":"यह मेरा घर है","rm":"yeh mera ghar hai","en":"this is my home","e":"🏠"},
+  {"id":"aapkanaam","hi":"आपका नाम क्या है?","rm":"aapka naam kya hai?","en":"what is your name?","e":"🪪"},
+  {"id":"hindiseekh","hi":"मैं हिंदी सीख रही हूँ","rm":"main hindi seekh rahi hoon","en":"I'm learning Hindi","e":"📖"},
+  {"id":"hindipasand","hi":"मुझे हिंदी पसंद है","rm":"mujhe hindi pasand hai","en":"I like Hindi","e":"💗"},
+  {"id":"tumsundar","hi":"तुम बहुत सुंदर हो","rm":"tum bahut sundar ho","en":"you are very beautiful","e":"🌸"},
+  {"id":"tumpasand","hi":"मुझे तुम पसंद हो","rm":"mujhe tum pasand ho","en":"I like you","e":"😊"},
+  {"id":"aajthand","hi":"आज बहुत ठंड है","rm":"aaj bahut thand hai","en":"it's very cold today","e":"🥶"},
+  {"id":"aajbaarish","hi":"आज बारिश हो रही है","rm":"aaj baarish ho rahi hai","en":"it's raining today","e":"🌧️"},
+  {"id":"chaloghar","hi":"चलो, घर चलें","rm":"chalo, ghar chalein","en":"let's go home","e":"🚶‍♀️"},
+  {"id":"aurchahiye","hi":"और चाहिए?","rm":"aur chahiye?","en":"want some more?","e":"➕"},
+  {"id":"neend","hi":"मुझे नींद आ रही है","rm":"mujhe neend aa rahi hai","en":"I'm sleepy","e":"😴"},
+  {"id":"shubhratri","hi":"शुभ रात्रि","rm":"shubh raatri","en":"good night","e":"🌙"},
+  {"id":"yaadaarahi","hi":"मुझे तुम्हारी याद आ रही है","rm":"mujhe tumhari yaad aa rahi hai","en":"I miss you","e":"🥺"},
+  {"id":"saathhoon","hi":"मैं तुम्हारे साथ हूँ","rm":"main tumhare saath hoon","en":"I'm with you","e":"🫂"},
+  {"id":"sabthik","hi":"सब ठीक है?","rm":"sab theek hai?","en":"is everything okay?","e":"👌"},
+  {"id":"jaldiaao","hi":"जल्दी आओ","rm":"jaldi aao","en":"come quickly","e":"🏃‍♀️"},
+  {"id":"mazaaagaya","hi":"मज़ा आ गया!","rm":"maza aa gaya!","en":"that was so much fun!","e":"🎉"}
+];

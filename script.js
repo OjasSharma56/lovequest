@@ -22,6 +22,10 @@ const DAILY_ROUND_SIZE = 5;    // today's word + 4 more
 const LEARN_ROUND_SIZE = 10;   // "I'm just here to learn Hindi"
 const POINTS_PER_WORD = 10;
 const SEASON_SHARE = 0.4;      // share of each round given to the current season's words
+const REVIEW_STEPS = [1, 3, 7];  // a missed word returns after 1 day, then 3, then 7 more days of getting it right
+const REVIEW_SHARE = 0.4;      // at most this share of a round is "review" (words she missed before)
+const PHRASE_UNLOCK_WORDS = 20;  // phrases join the Hindi-only rounds once she has learned this many words
+const LEARN_PHRASES = 2;       // phrases per Hindi-only round
 
 /* the app starts completely fresh every time it's opened. If she leaves it open in the
    background and comes back after this long, it resets too (as if she'd closed it). */
@@ -202,7 +206,13 @@ function dayNumber(d){ return Math.round(Date.UTC(d.getFullYear(), d.getMonth(),
 const HINDI_DAYS = ['रवि','सोम','मंगल','बुध','गुरु','शुक्र','शनि'];   // Sun … Sat
 
 /* ---------------- the word bank ---------------- */
+WORDS.forEach(w => { w.id = w.rm; w.kind = 'word'; });
 const WORD_BY_ID = Object.fromEntries(WORDS.map(w => [w.rm, w]));
+/* phrases (phrases.js) only contain entries that have a recording in phrases/<id>.m4a */
+const PHRASES_ALL = (typeof PHRASES !== 'undefined' ? PHRASES : []).map(p => Object.assign({ kind:'phrase' }, p));
+const PHRASE_BY_ID = Object.fromEntries(PHRASES_ALL.map(p => [p.id, p]));
+const ITEM_BY_ID = Object.assign({}, WORD_BY_ID, PHRASE_BY_ID);
+function itemAudio(it){ return it.kind === 'phrase' ? `phrases/${it.id}.m4a` : `audio/${it.rm}.m4a`; }
 const SEEN_KEY = 'kahani_seen_v1';        // words met in the current cycle (resets when she's seen them all)
 
 function shuffle(a){
@@ -234,11 +244,35 @@ function markSeen(id){ saveSeen([...new Set(loadSeen().concat(id))]); }
 
 /* ---------------- progress (kept forever) ---------------- */
 const STATS_KEY = 'kahani_stats_v1';
-const stats = Object.assign({ rounds:0, learned:[], unlocked:[], heard:[] }, readJSON(STATS_KEY, {}));
+const stats = Object.assign({ rounds:0, learned:[], unlocked:[], heard:[], review:{} }, readJSON(STATS_KEY, {}));
+if(!stats.review || typeof stats.review !== 'object') stats.review = {};
 if(!stats.learned.length) stats.learned = loadSeen();          // carry over what she already knew
 function saveStats(){ writeJSON(STATS_KEY, stats); }
 function learnedCount(){ return stats.learned.filter(id => WORD_BY_ID[id]).length; }
 function markLearned(id){ if(!stats.learned.includes(id)){ stats.learned.push(id); saveStats(); } }
+function phrasesLearnedCount(){ return stats.learned.filter(id => PHRASE_BY_ID[id]).length; }
+
+/* A missed word is due again tomorrow; each time she then gets it right it waits longer (3 days, 7 days),
+   and after that it's considered learned for good. Missing it again starts over. */
+function noteResult(id, right){
+  const n = dayNumber(today0());
+  const r = stats.review[id];
+  if(!right){
+    stats.review[id] = { due: n + REVIEW_STEPS[0], step: 0 };
+  } else if(r){
+    const step = r.step + 1;
+    if(step >= REVIEW_STEPS.length) delete stats.review[id];
+    else stats.review[id] = { due: n + REVIEW_STEPS[step], step };
+  }
+  saveStats();
+}
+function dueReviews(){
+  const n = dayNumber(today0());
+  return Object.entries(stats.review)
+    .filter(([id, r]) => ITEM_BY_ID[id] && r && r.due <= n)
+    .sort((a, b) => a[1].due - b[1].due)
+    .map(([id]) => ITEM_BY_ID[id]);
+}
 
 /* ---------------- streak ---------------- */
 const STREAK_KEY = 'kahani_streak_v1';
@@ -278,12 +312,29 @@ function todaysWord(){
 }
 
 /* ---------------- rounds ---------------- */
-/* words she hasn't got right yet come first; once she's been through the whole bank it starts over */
+/* A round = (optional) today's word, then words she missed before that are due for review, then (in the
+   Hindi-only path, once unlocked) a couple of phrases, then new words she hasn't got right yet.
+   Once she's been through the whole bank it starts over. */
 function newRound(size, firstId){
-  const pool = WORDS.filter(w => w.rm !== firstId);
+  const exclude = new Set(firstId ? [firstId] : []);
+  const due = dueReviews()
+    .filter(it => it.id !== firstId && (mode === 'learn' || it.kind === 'word'))
+    .slice(0, Math.floor(size * REVIEW_SHARE));
+  due.forEach(it => exclude.add(it.id));
+
+  let phrases = [];
+  if(mode === 'learn' && PHRASES_ALL.length >= 6 && learnedCount() >= PHRASE_UNLOCK_WORDS){
+    const left = PHRASES_ALL.filter(p => !exclude.has(p.id));
+    const fresh = left.filter(p => !stats.learned.includes(p.id));
+    const want = Math.max(0, LEARN_PHRASES - due.filter(it => it.kind === 'phrase').length);
+    phrases = shuffle(fresh.length >= want ? fresh : left).slice(0, want);
+    phrases.forEach(p => exclude.add(p.id));
+  }
+
+  const need = size - (firstId ? 1 : 0) - due.length - phrases.length;
+  const pool = WORDS.filter(w => !exclude.has(w.rm));
   const seen = loadSeen();
   const fresh = pool.filter(w => !seen.includes(w.rm));
-  const need = firstId ? size - 1 : size;
   let picked;
   if(fresh.length >= need){
     const seasonal = SEASON
@@ -296,10 +347,13 @@ function newRound(size, firstId){
     picked = shuffle(fresh.concat(filler));
     saveSeen([]);                       // new cycle begins
   }
-  if(firstId && WORD_BY_ID[firstId]) picked.unshift(WORD_BY_ID[firstId]);
-  quiz = picked.map(w => {
-    const others = shuffle(WORDS.filter(o => o.rm !== w.rm && o.en !== w.en)).slice(0, 2);
-    return { id: w.rm, opts: shuffle([w, ...others]).map(o => o.rm), picked: null };
+  const dueIds = new Set(due.map(it => it.id));
+  const items = shuffle(picked.concat(due, phrases));
+  if(firstId && WORD_BY_ID[firstId]) items.unshift(WORD_BY_ID[firstId]);
+  quiz = items.map(it => {
+    const sameKind = it.kind === 'phrase' ? PHRASES_ALL : WORDS;
+    const others = shuffle(sameKind.filter(o => o.id !== it.id && o.en !== it.en)).slice(0, 2);
+    return { id: it.id, kind: it.kind, review: dueIds.has(it.id), opts: shuffle([it, ...others]).map(o => o.id), picked: null };
   });
   quizIndex = 0;
   warmAudio();
@@ -312,7 +366,7 @@ function quizScore(){
 /* ---------------- audio: a real recording for every word (audio/<rm>.m4a) ---------------- */
 let currentAudio = null;
 function warmAudio(){
-  quiz.forEach(q => { fetch(`audio/${q.id}.m4a`).catch(()=>{}); });
+  quiz.forEach(q => { fetch(itemAudio(ITEM_BY_ID[q.id])).catch(()=>{}); });
 }
 function speakFallback(w, note){
   /* last resort only — the recordings are the real thing */
@@ -338,10 +392,10 @@ function playSrc(src, btn, onFail){
 }
 function playWord(w, btn, note){
   if(note) note.textContent = '';
-  playSrc(`audio/${w.rm}.m4a`, btn, () => speakFallback(w, note));
+  playSrc(itemAudio(w), btn, () => speakFallback(w, note));
 }
 $('qListen').addEventListener('click', () => {
-  if(quiz[quizIndex]) playWord(WORD_BY_ID[quiz[quizIndex].id], $('qListen'), $('qListenNote'));
+  if(quiz[quizIndex]) playWord(ITEM_BY_ID[quiz[quizIndex].id], $('qListen'), $('qListenNote'));
 });
 
 /* sound effects: tiny synthesized blips, no external files */
@@ -597,28 +651,35 @@ $('modeListen').addEventListener('click', ()=>{ blip(500, 0.05); setListenMode(t
 function showWord(w, hidden){
   $('qWord').textContent = hidden ? '?' : w.hi;
   $('qWord').classList.toggle('hidden-word', hidden);
+  $('qWord').classList.toggle('phrase', w.kind === 'phrase' && !hidden);
   $('qRoman').textContent = hidden ? 'listen, then pick' : w.rm;
 }
 function renderQuiz(opts){
   opts = opts || {};
   const q = quiz[quizIndex];
-  const w = WORD_BY_ID[q.id];
+  const w = ITEM_BY_ID[q.id];
   if(currentAudio){ currentAudio.pause(); currentAudio = null; }
   $('qListen').classList.remove('playing');
   $('qListen').classList.toggle('big', listenMode);
   $('qListen').textContent = listenMode ? '🔊 play again' : '🔊 listen';
   $('qListenNote').textContent = '';
   const first = mode === 'daily' && quizIndex === 0;
+  const kindLabel = q.kind === 'phrase' ? 'PHRASE' : 'WORD';
   $('qStep').innerHTML = '';
-  $('qStep').append(document.createTextNode(`WORD ${quizIndex + 1} / ${quiz.length}`));
+  $('qStep').append(document.createTextNode(`${kindLabel} ${quizIndex + 1} / ${quiz.length}`));
   if(first){
     const tag = document.createElement('span'); tag.lang = 'hi'; tag.textContent = ' · आज का शब्द';
     $('qStep').append(tag);
   }
+  if(q.review){
+    const rv = document.createElement('span'); rv.className = 'rev'; rv.textContent = ' · ↻ REVIEW';
+    $('qStep').append(rv);
+  }
   showWord(w, listenMode && q.picked === null);
+  qOpts.classList.toggle('phrase', q.kind === 'phrase');
   qOpts.innerHTML = '';
   q.opts.forEach((id, i)=>{
-    const o = WORD_BY_ID[id];
+    const o = ITEM_BY_ID[id];
     const b = document.createElement('button');
     b.className = 'opt';
     b.dataset.i = i;
@@ -631,7 +692,7 @@ function renderQuiz(opts){
   });
   qFeedback.innerHTML = '';
   const last = quizIndex === quiz.length - 1;
-  quizNext.textContent = !last ? 'अगला शब्द · NEXT WORD →'
+  quizNext.textContent = !last ? (q.kind === 'phrase' || (quiz[quizIndex + 1] && quiz[quizIndex + 1].kind === 'phrase') ? 'अगला · NEXT →' : 'अगला शब्द · NEXT WORD →')
     : mode === 'learn' ? 'नतीजा · SEE HOW I DID →'
     : mode === 'daily' ? 'पूरा · FINISH 🔥'
     : 'आगे चलें · CONTINUE →';
@@ -643,7 +704,7 @@ function renderQuiz(opts){
 }
 function revealAnswer(pickedIndex){
   const q = quiz[quizIndex];
-  const w = WORD_BY_ID[q.id];
+  const w = ITEM_BY_ID[q.id];
   const answerIndex = q.opts.indexOf(q.id);
   const right = pickedIndex === answerIndex;
   showWord(w, false);
@@ -657,8 +718,9 @@ function revealAnswer(pickedIndex){
   hi.className = 'hi'; hi.lang = 'hi';
   hi.textContent = right ? 'शाबाश!' : 'कोई बात नहीं';
   const line = document.createElement('span');
+  const back = right ? '' : (q.kind === 'phrase' ? ' We\'ll try it again soon.' : ' It\'ll come back soon.');
   line.textContent = (right ? 'Shabaash, Choti — ' : 'Koi baat nahi (no worries) — ')
-    + `${w.rm} means “${w.en}”.` + (w.after ? ' ' + w.after : '');
+    + `${w.rm} means “${w.en}”.` + (w.after ? ' ' + w.after : '') + back;
   qFeedback.append(hi, line);
   quizNext.disabled = false;
 }
@@ -669,7 +731,8 @@ qOpts.addEventListener('click', (e)=>{
   const i = Number(btn.dataset.i);
   q.picked = i;
   const right = q.opts[i] === q.id;
-  if(right){ markSeen(q.id); markLearned(q.id); }   // missed words stay "new" so they come back
+  if(right){ if(WORD_BY_ID[q.id]) markSeen(q.id); markLearned(q.id); }
+  noteResult(q.id, right);              // missed items come back tomorrow, then in 3 and 7 days
   blip(right ? 880 : 240, right ? 0.14 : 0.12, right ? 'triangle' : 'sawtooth');
   revealAnswer(i);
   $('qPoints').textContent = pointsText();
@@ -713,14 +776,14 @@ function finishRound(){
 function reportRound(m, streak){
   const right = [], missed = [];
   quiz.forEach(q => {
-    const w = WORD_BY_ID[q.id];
+    const w = ITEM_BY_ID[q.id];
     (isRight(q) ? right : missed).push(`${w.rm} (${w.en})`);
   });
   const params = new URLSearchParams({
     key: CAL_SECRET, action: 'progress', mode: m,
     score: String(quizScore() / POINTS_PER_WORD), total: String(quiz.length),
     streak: String(streak), learned: String(learnedCount()), bank: String(WORDS.length),
-    right: right.join(', '), missed: missed.join(', ')
+    right: right.join(' | '), missed: missed.join(' | ')
   });
   fetch(`${CAL_BACKEND_URL}?${params.toString()}`).catch(()=>{});
 }
@@ -733,16 +796,16 @@ function showResults(gift){
   const list = $('resWords');
   list.innerHTML = '';
   quiz.forEach(q => {
-    const w = WORD_BY_ID[q.id];
+    const w = ITEM_BY_ID[q.id];
     const li = document.createElement('li');
-    if(isRight(q)) li.className = 'ok';
+    li.className = (isRight(q) ? 'ok' : '') + (q.kind === 'phrase' ? ' phrase' : '');
     const hi = document.createElement('span'); hi.className = 'rh'; hi.lang = 'hi'; hi.textContent = w.hi;
     const rr = document.createElement('span'); rr.className = 'rr';
     rr.textContent = `${w.rm} · ${w.en}${isRight(q) ? ' ✓' : ''}`;
     li.append(hi, rr);
     list.appendChild(li);
   });
-  $('resMet').textContent = `WORDS LEARNED · ${learnedCount()} / ${WORDS.length}`;
+  $('resMet').textContent = `WORDS LEARNED · ${learnedCount()} / ${WORDS.length}` + (PHRASES_ALL.length ? ` · PHRASES ${phrasesLearnedCount()} / ${PHRASES_ALL.length}` : '');
 }
 $('learnAgain').addEventListener('click', ()=>{ blip(880, 0.12); startLearn(); });
 $('learnHome').addEventListener('click', ()=>{ blip(320, 0.06); setLevel(L.MENU); });
